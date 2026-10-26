@@ -1,0 +1,16 @@
+{
+  "model": "models\\ppo_1m.zip",
+  "timesteps": 699648,
+  "n_envs": 12,
+  "n_steps": 256,
+  "batch_size": 512,
+  "seed": 0,
+  "mood": null,
+  "max_steps": 64,
+  "eval_mean_reward": 41.64372912756442,
+  "eval_std_reward": 0.6827593828057614,
+  "eval_episodes": 20,
+  "elapsed_seconds": 761.27,
+  "s3_uri": null,
+  "data_dir": null
+}

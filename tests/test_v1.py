@@ -22,7 +22,7 @@ def test_v1_spaces_and_reset():
         return
     env = MoodMixV1Env(data_dir=ROOT / "crate", max_steps=16)
     obs, info = env.reset(seed=0)
-    assert obs.shape == (39,)
+    assert obs.shape == (41,)
     assert env.action_space.shape == (8,)
     assert env.observation_space.contains(obs)
     assert info["deck_a"]["id"] != info["deck_b"]["id"]

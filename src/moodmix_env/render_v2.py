@@ -169,6 +169,14 @@ def _smooth(values: np.ndarray, window: int) -> np.ndarray:
     return np.convolve(values, kernel, mode="same").astype(np.float32)
 
 
+def _smooth_steps(values: np.ndarray, width: int = 3) -> np.ndarray:
+    values = np.asarray(values, dtype=np.float32)
+    if width <= 1 or len(values) < 2:
+        return values
+    kernel = np.ones(width, dtype=np.float32) / width
+    return np.convolve(values, kernel, mode="same").astype(np.float32)
+
+
 def _warp(audio: np.ndarray, src_beats: np.ndarray,
           dst_beats: np.ndarray, sr: int) -> np.ndarray:
     """Map every output beat onto the corresponding source beat."""
@@ -255,8 +263,33 @@ def render_mix(env, sr: int = 44100) -> tuple[np.ndarray, int]:
     eq_b = [_eq_curve(curve(4 + i)) for i in range(3)]
     filt = curve(7)
 
+    # Vocal-aware ducking.  The analysis supplies a per-beat lead-vocal
+    # likelihood (or real lyric timings from an .lrc sidecar).  When both
+    # decks carry a lead, both mids give way; when only one does, the other
+    # deck's mids duck under it.  The low band is untouched.
+    vocal_a = np.asarray(track_a["features"].get(
+        "vocal", np.zeros(len(ta))), dtype=np.float32)
+    vocal_b = np.asarray(track_b["features"].get(
+        "vocal", np.zeros(len(tb))), dtype=np.float32)
+    step_idx = np.arange(len(actions))
+    beat_idx_a = np.clip(cue_a + step_idx, 0, len(vocal_a) - 1)
+    beat_idx_b = np.clip(cue_b + step_idx, 0, len(vocal_b) - 1)
+    va = np.interp(sample_t, action_t,
+                   _smooth_steps(vocal_a[beat_idx_a])).astype(np.float32)
+    vb = np.interp(sample_t, action_t,
+                   _smooth_steps(vocal_b[beat_idx_b])).astype(np.float32)
+    both = np.minimum(va, vb)
+    duck_a = np.clip(1.0 - 0.45 * both
+                     - 0.25 * np.clip(vb - va, 0.0, 1.0), 0.25, 1.0)
+    duck_b = np.clip(1.0 - 0.30 * both
+                     - 0.20 * np.clip(va - vb, 0.0, 1.0), 0.25, 1.0)
+
     a_low, a_mid, a_high = _split(deck_a, sr)
     b_low, b_mid, b_high = _split(deck_b, sr)
+    a_mid = a_mid * duck_a[:, None]
+    a_high = a_high * duck_a[:, None]
+    b_mid = b_mid * duck_b[:, None]
+    b_high = b_high * duck_b[:, None]
     a_mix = (a_low * eq_a[0][:, None] + a_mid * eq_a[1][:, None]
              + a_high * eq_a[2][:, None])
     b_mix = (b_low * eq_b[0][:, None] + b_mid * eq_b[1][:, None]

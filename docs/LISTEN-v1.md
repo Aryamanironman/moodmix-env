@@ -1,55 +1,60 @@
-# DJSet-v1 - what to listen to
+# DJSet-v1 - what to listen to (v2, vocal-aware)
 
-All files are 44.1 kHz stereo WAV. Start with the set, then the same pair as
-expert vs model, then the stochastic range.
+All files are 44.1 kHz stereo WAV. The model is `models/ppo_v2_final.zip`,
+the 1M-step run from the quiet clone (41-float observation, vocal terms).
 
 ## The set (1 min 51 s, six transitions)
 
-`showcase_ppo_v1_long_set.wav` - final model, `models/ppo_v1_final.zip`
-(800k PPO steps from a behavior clone of the phrase-aware expert).
+`runs/v1/showcase_ppo_v2_final_set.wav`
 
-| # | deck A → deck B | length | beat hits | level p99 jump | level range |
+| # | deck A to deck B | length | beat hits | level p99 jump | level range |
 |---|---|---|---|---|---|
-| 1 | Closer → Starboy | 20.2 s | 0.91 | 3.7 dB | 4.6 dB |
-| 2 | STAY → Yellow | 22.6 s | 1.00 | 4.7 dB | 6.3 dB |
-| 3 | BIRDS OF A FEATHER → Riptide | 18.3 s | 0.97 | 3.5 dB | 3.7 dB |
-| 4 | Shape of You → Sweater Weather | 14.7 s | 0.85 | 3.3 dB | 4.1 dB |
-| 5 | Blinding Lights → The Night We Met | 22.5 s | 0.94 | 2.3 dB | 2.3 dB |
-| 6 | Believer → Sweater Weather | 15.4 s | 0.88 | 4.8 dB | 6.3 dB |
+| 1 | Closer to Starboy | 20.2 s | 0.82 | 6.6 dB | 6.7 dB |
+| 2 | STAY to Yellow | 22.6 s | 0.97 | 5.1 dB | 8.0 dB |
+| 3 | BIRDS OF A FEATHER to Riptide | 18.3 s | 1.00 | 3.3 dB | 3.6 dB |
+| 4 | Shape of You to Sweater Weather | 14.7 s | 0.85 | 3.4 dB | 4.1 dB |
+| 5 | Blinding Lights to The Night We Met | 22.5 s | 0.94 | 2.6 dB | 2.7 dB |
+| 6 | Believer to Sweater Weather | 15.4 s | 0.88 | 4.3 dB | 5.8 dB |
 
 "Beat hits" is the fraction of the transition's beat grid with an onset peak
 within 70 ms; "level p99 jump" is the 99th-percentile change in 250 ms RMS,
 measured 0.5 s inside the edges. Both decks are phrase-cued and beat-warped to
-deck A's grid, so the beat score measures the render, not the tracker.
-
-The expert reference of the same six is `showcase_expert_set.wav`, and the
-behavior clone is `showcase_ppo_v1_bc_set.wav`.
+deck A's grid.
 
 ## One pair, expert vs model
 
-- `compare_side_by_side.wav` - expert first, 0.4 s gap, then the model.
-  Riptide → Someone You Loved: expert +10.71, model +13.53; low-band overlap
-  0.263 vs 0.155; mean level jump 0.276 vs 0.082; beat hits 0.97 vs 0.94.
-- `compare_expert.wav` and `compare_model.wav` - the two halves.
+`runs/v1/v2/compare_side_by_side.wav` - Blinding Lights to The Night We Met,
+expert first, 0.4 s gap, then the model.
 
-## Stochastic samples (same pair, not argmax)
+- expert: +10.25, low overlap 0.293, mean level jump 0.289, beat hits 0.97
+- model: +14.11, low overlap 0.100, mean level jump 0.245, beat hits 0.94
 
-`sample_01.wav` … `sample_04.wav`, labelled in `samples.json`. Rewards
-+8.73, +9.00, +8.12, +10.12 - a distribution of believable performances, with
-the exploration sigma narrowed for the demo (`log_std = -2.5`).
+The two halves are `compare_expert.wav` and `compare_model.wav`.
+
+## Stochastic samples
+
+`runs/v1/v2/samples/sample_01.wav` to `sample_04.wav`, rewards +9.85, +11.22,
++11.29, +12.52. The exploration sigma is narrowed for the demo (log_std
+-2.5); at the training sigma the samples are mostly noise.
 
 ## The models
 
-- `models/ppo_v1_final.zip` - final: 800k PPO steps from the quiet clone, eval
-  return 13.65 ± 0.41, low overlap 0.151, mean level jump 0.087. Same weights
-  as `models/ppo_v1_long.zip`.
-- `models/ppo_v1.zip` - 400k checkpoint (eval 12.99).
-- `models/ppo_v1_bc.zip` - behavior clone of the expert: 39-float relative
-  observation, 8 continuous controls, 400 expert episodes, MSE 4e-5, eval
-  10.37.
-- `models/ppo_v1_bc_quiet.zip` - same clone with `log_std = -2.8`, the
-  starting point for fine-tuning. A clone with the original 0.22 sigma makes
-  PPO learn a noise-robust 3-beat cut; the quiet clone keeps the blend.
+- `models/ppo_v2_final.zip` - 1M PPO steps, eval +14.91, low overlap 0.116,
+  mean level jump 0.171. Same weights as `models/ppo_v2.zip`.
+- `models/ppo_v2_bc.zip` - behavior clone of the expert, 41-float obs, eval
+  9.55 under the vocal-aware reward.
+- `models/ppo_v2_bc_quiet.zip` - the clone with log_std -2.8, used as the PPO
+  starting point.
+- The 39-float v1 models are kept in `models/` for reference and do not load
+  in the 41-float environment.
+
+## Training records and lineage
+
+- `runs/training/ppo_v2/` - `train_returns.csv`, `eval.csv`, `losses.csv`,
+  `curves.png`, `report.html`, `report.md`.
+- `mlops/` - the registry of every current and previous model and checkpoint,
+  with SHA256 fingerprints, observation sizes, timesteps, eval metadata and
+  copied records. The local player serves it at `/mlops/`.
 
 ## Your own songs
 
@@ -58,10 +63,11 @@ python scripts/prepare_library_v2.py --audio-dir "D:\Music" \
   --out "D:\Music\manifest_v2.json"
 python scripts/mix_songs.py --data-dir "D:\Music" \
   --track-a "Song A.mp3" --track-b "Song B.mp3" \
-  --model models/ppo_v1_final.zip --policy model --best-cues \
+  --model models/ppo_v2_final.zip --policy model --best-cues \
   --out runs/v1/my_blend.wav
 ```
 
-The policy sees only relative features, so the same checkpoint applies to a
-new folder. `--best-cues` tries the strongest phrase pairs; leave it off for a
-random phrase.
+Or run the local player (`python scripts/serve_v1.py --port 8050`), paste
+the folder in the Library bar, and Load folder. The best-cues button searches
+the strongest phrase pairs by the environment score; for a known pair, choose
+the cues by ear, since the score is a proxy for the rendered audio.

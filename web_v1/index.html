@@ -36,6 +36,11 @@
     text-transform: uppercase; color: var(--accent);
   }
   .brand b { color: var(--fg); font-weight: 600; }
+  .top-links {
+    display: flex; gap: 14px; font-family: var(--mono); font-size: 0.7rem;
+  }
+  .top-links a { color: var(--muted); text-decoration: none; }
+  .top-links a:hover { color: var(--accent); }
   .status {
     font-family: var(--mono); font-size: 0.74rem; color: var(--muted);
     border: 1px solid var(--line); padding: 5px 10px; border-radius: 999px;
@@ -43,6 +48,41 @@
   .status.ok { color: var(--good); border-color: #245037; }
   .status.warn { color: var(--accent); border-color: #4a3617; }
   .status.err { color: var(--bad); border-color: #5a2626; }
+
+  .library-bar {
+    display: grid;
+    grid-template-columns: minmax(140px, 1.1fr) minmax(220px, 1.8fr) auto auto auto;
+    gap: 9px; align-items: center; padding: 12px 14px; margin-bottom: 14px;
+  }
+  .lib-label {
+    font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .lib-name {
+    font-size: 0.86rem; font-weight: 600; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .lib-count { font-family: var(--mono); font-size: 0.64rem; color: var(--muted); }
+  #lib-path {
+    width: 100%; background: #0a1017; color: var(--fg);
+    border: 1px solid var(--line); border-radius: 7px;
+    padding: 8px 9px; font: 0.8rem var(--mono); outline: none;
+  }
+  #lib-path:focus { border-color: var(--accent); }
+  .lib-progress {
+    grid-column: 1 / -1; height: 3px; background: #0a1017;
+    border-radius: 2px; overflow: hidden;
+  }
+  .lib-progress span {
+    display: block; width: 0; height: 100%; background: var(--accent);
+    transition: width 200ms;
+  }
+  .lib-status {
+    grid-column: 1 / -1; font-family: var(--mono); font-size: 0.68rem;
+    color: var(--muted); min-height: 1.2em;
+  }
+  .lib-status.err { color: var(--bad); }
+  .lib-status.ok { color: var(--good); }
 
   .selector-grid {
     display: grid; grid-template-columns: 1fr 250px 1fr; gap: 14px;
@@ -225,6 +265,8 @@
   footer { margin-top: 20px; font-family: var(--mono); font-size: 0.64rem; color: var(--muted); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 
   @media (max-width: 900px) {
+    .library-bar { grid-template-columns: 1fr; }
+    .lib-progress, .lib-status { grid-column: auto; }
     .selector-grid { grid-template-columns: 1fr; }
     .render-card { order: 3; }
     .fader-row { grid-template-columns: 1fr; gap: 12px; }
@@ -239,8 +281,26 @@
 <div class="app">
   <header>
     <div class="brand"><b>MoodMix</b> / DJSet-v1</div>
+    <div class="top-links">
+      <a href="/training/" target="_blank" rel="noreferrer">Training</a>
+      <a href="/explainer" target="_blank" rel="noreferrer">Explainer</a>
+    </div>
     <div class="status" id="status">loading library…</div>
   </header>
+
+  <section class="library-bar panel">
+    <div>
+      <div class="lib-label">Library</div>
+      <div class="lib-name" id="lib-label">loading</div>
+      <div class="lib-count" id="lib-count"></div>
+    </div>
+    <input id="lib-path" spellcheck="false" placeholder="D:\Music or any folder of audio files" aria-label="Music folder path">
+    <button class="ghost" id="lib-browse">Browse</button>
+    <button class="primary" id="lib-load">Load folder</button>
+    <button class="ghost" id="lib-builtin">Built-in crate</button>
+    <div class="lib-progress"><span id="lib-bar"></span></div>
+    <div class="lib-status" id="lib-status">Point it at a folder. Each song is analysed once, then the dropdowns become those songs.</div>
+  </section>
 
   <section class="selector-grid">
     <div class="deck-card panel" id="deck-a-card">
@@ -651,8 +711,112 @@
     renderTransition();
   }
 
+  function setLibStatus(text, kind = "") {
+    const el = $("#lib-status");
+    el.textContent = text;
+    el.className = "lib-status" + (kind ? " " + kind : "");
+  }
+
+  function setLibraryInfo(library) {
+    $("#lib-label").textContent = library.label || "library";
+    $("#lib-count").textContent = `${library.tracks.length} tracks`;
+    if (library.data_dir) $("#lib-path").value = library.data_dir;
+  }
+
+  async function scanLibrary(body, waiting) {
+    clearRender();
+    $("#render").disabled = true;
+    $("#lib-load").disabled = true;
+    $("#lib-builtin").disabled = true;
+    $("#lib-browse").disabled = true;
+    setLibStatus(waiting || "Scanning folder...");
+    $("#lib-bar").style.width = "2%";
+    try {
+      const start = await fetch("/api/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then(async response => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+        return data;
+      });
+      let job = null;
+      for (;;) {
+        await new Promise(resolve => setTimeout(resolve, 700));
+        job = await fetch(`/api/scan/${start.job}`).then(response => response.json());
+        if (job.status === "error") throw new Error(job.error || "analysis failed");
+        if (job.status === "done") break;
+        const fraction = job.total ? job.done / job.total : 0;
+        $("#lib-bar").style.width = `${Math.max(2, fraction * 100)}%`;
+        setLibStatus(`Analyzing ${Math.min(job.total, job.done + 1)} / ${job.total}: ${job.current}. About 15 s per song.`);
+      }
+      if (!job.library) throw new Error("scan finished without a library");
+      state.library = {
+        ...state.library,
+        tracks: job.library.tracks,
+        pairs: job.library.pairs,
+        data_dir: job.data_dir,
+        label: job.label
+      };
+      fillTracks();
+      setLibraryInfo(state.library);
+      updateCueOptions("a");
+      updateCueOptions("b");
+      $("#lib-bar").style.width = "100%";
+      if (state.library.pairs.length) {
+        const pair = state.library.pairs[0];
+        setPair(pair.a, pair.b);
+        await renderTransition();
+        setLibStatus(`Loaded ${state.library.tracks.length} tracks from ${job.label}.`, "ok");
+      } else {
+        setLibStatus("Loaded, but no tempo-compatible pair. Pick two tracks manually.", "err");
+      }
+      setStatus(`model loaded · ${state.library.tracks.length} tracks`, "ok");
+    } catch (error) {
+      setLibStatus("Folder failed: " + error.message, "err");
+    } finally {
+      $("#render").disabled = false;
+      $("#lib-load").disabled = false;
+      $("#lib-builtin").disabled = false;
+      $("#lib-browse").disabled = false;
+    }
+  }
+
+  async function browseFolder() {
+    setLibStatus("Waiting for the folder picker...");
+    try {
+      const result = await fetch("/api/browse", { method: "POST" })
+        .then(response => response.json());
+      if (result.path) {
+        $("#lib-path").value = result.path;
+        setLibStatus("Folder selected. Click Load folder.");
+      } else if (result.error) {
+        setLibStatus("Picker: " + result.error, "err");
+      } else {
+        setLibStatus("No folder selected.");
+      }
+    } catch (error) {
+      setLibStatus("Picker failed: " + error.message, "err");
+    }
+  }
+
   function bind() {
     $("#render").addEventListener("click", renderTransition);
+    $("#lib-load").addEventListener("click", () => {
+      const path = $("#lib-path").value.trim();
+      if (!path) {
+        setLibStatus("Enter a folder path, or use Browse.", "err");
+        return;
+      }
+      scanLibrary({ path });
+    });
+    $("#lib-builtin").addEventListener("click", () =>
+      scanLibrary({ preset: "crate" }, "Loading the built-in 20-song crate..."));
+    $("#lib-browse").addEventListener("click", browseFolder);
+    $("#lib-path").addEventListener("keydown", event => {
+      if (event.key === "Enter") $("#lib-load").click();
+    });
     $("#next-pair").addEventListener("click", pickNextPair);
     $("#play").addEventListener("click", () => {
       if (!state.data) return;
@@ -707,8 +871,14 @@
       const library = await fetch("/api/library").then(r => r.json());
       state.library = library;
       fillTracks();
+      setLibraryInfo(library);
       $("#cue-a").disabled = $("#best-cues").checked;
       $("#cue-b").disabled = $("#best-cues").checked;
+      if (library.error) {
+        setLibStatus("Library error: " + library.error, "err");
+      } else {
+        setLibStatus(`${library.tracks.length} tracks ready from ${library.label}.`);
+      }
       if (!library.model_loaded) {
         setStatus("model missing · expert fallback", "warn");
       } else {

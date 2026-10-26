@@ -1,0 +1,16 @@
+{
+  "model": "models\\ppo_crate.zip",
+  "timesteps": 600000,
+  "n_envs": 12,
+  "n_steps": 256,
+  "batch_size": 512,
+  "seed": 0,
+  "mood": null,
+  "max_steps": 64,
+  "eval_mean_reward": 43.83781322555461,
+  "eval_std_reward": 1.582925449971587,
+  "eval_episodes": 10,
+  "elapsed_seconds": 432.35,
+  "s3_uri": null,
+  "data_dir": "crate"
+}

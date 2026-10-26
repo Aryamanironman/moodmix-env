@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DJSet-v1 explainer</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --paper: #ffffff; --ink: #151a22; --muted: #5b6472;
+    --line: #d7dde5; --accent: #a84a06; --good: #146c37; --bad: #b91c1c;
+    --cyan: #0e7490;
+    --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); line-height: 1.6; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 30px 20px 60px; }
+  a { color: var(--accent); }
+  h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); line-height: 1.1;
+    letter-spacing: -0.02em; margin: 0 0 8px; }
+  h2 { font-size: 1.15rem; margin: 34px 0 8px; }
+  h3 { font-size: 0.95rem; margin: 20px 0 6px; }
+  p, li { font-size: 0.92rem; }
+  .sub { color: var(--muted); max-width: 70ch; margin: 0 0 10px; }
+  .mono { font-family: var(--mono); font-size: 0.85em; }
+  .card { background: var(--paper); border: 1px solid var(--line);
+    border-radius: 9px; padding: 16px 18px; margin: 14px 0; }
+  .pipeline { font-family: var(--mono); font-size: 0.78rem; line-height: 1.7;
+    white-space: pre-wrap; background: var(--paper); border: 1px solid var(--line);
+    border-radius: 9px; padding: 16px; overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 620px;
+    background: var(--paper); font-size: 0.82rem; }
+  th, td { border-bottom: 1px solid var(--line); padding: 8px 10px;
+    text-align: left; vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted); }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line);
+    border-radius: 9px; margin: 12px 0; }
+  .tag { font-family: var(--mono); font-size: 0.68rem; color: var(--accent);
+    letter-spacing: 0.08em; text-transform: uppercase; }
+  code { font-family: var(--mono); background: #eef1f5; padding: 1px 5px;
+    border-radius: 3px; font-size: 0.86em; }
+  .note { border-left: 3px solid var(--accent); background: #fff7ef;
+    padding: 10px 14px; font-size: 0.86rem; margin: 12px 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  ul { padding-left: 1.2em; }
+  footer { margin-top: 36px; border-top: 1px solid var(--line);
+    padding-top: 12px; font-family: var(--mono); font-size: 0.7rem; color: var(--muted);
+    display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p><a href="/">Back to the player</a></p>
+  <div class="tag">DJSet-v1 / approach</div>
+  <h1>How the DJ agent works</h1>
+  <p class="sub">This page explains every moving part: what the analysis measures, what the policy sees and controls, what the reward pays for, how it is trained, how the audio is rendered, and how to read the training records.</p>
+
+  <h2>The pipeline</h2>
+  <div class="pipeline">audio folder
+   -> analysis_v2 (library_v2.py)
+        beat grid, downbeat phase, phrase cues,
+        per-beat bands / RMS / onset / percussion / harmony / centroid / vocal
+   -> manifest_v2.json
+   -> DJSet-v1 environment (env_v1.py)
+        41-float observation, 8 continuous controls, reward
+   -> expert_v1.py  (hand-written DJ)
+        -> behavior clone (pretrain_v1.py)
+             -> quiet clone (log_std -2.8)
+                  -> PPO fine-tune (train_v1.py)  -> models/*.zip
+   -> render_v2.py (beat warp, LR4 EQ, SVF filter, loudness, vocal ducking)
+   -> local player (webapp_v1.py + web_v1) or scripts/mix_songs.py</div>
+  <p>The policy never sees a track id or a fixed BPM. It sees relative features, so a checkpoint trained on one folder can run on another. The local player scans a folder once, analyses it, and swaps the dropdowns to those songs.</p>
+
+  <h2>1. Analysis: the beat grid is the foundation</h2>
+  <p>The old version stored only a BPM. A real track's first beat is not at 0 s, and a tracker can report double the musical tempo. The analysis now stores the actual beat times, folds tempo octaves by subsampling the grid (choosing the offset with the strongest attacks), estimates the downbeat phase, and places phrase cues every 32 beats (eight bars).</p>
+  <div class="table-wrap"><table>
+    <tr><th>per-beat feature</th><th>what it measures</th><th>why it matters</th></tr>
+    <tr><td>low / mid / high</td><td>band energy below 250 Hz, 250-2000 Hz, above 2 kHz</td><td>bass ownership, EQ separation, mud</td></tr>
+    <tr><td>rms</td><td>short-term loudness</td><td>section energy, level continuity</td></tr>
+    <tr><td>onset</td><td>attack strength</td><td>beat presence, cue strength</td></tr>
+    <tr><td>percussive / harmonic</td><td>HPSS energy split</td><td>drums versus sustained content</td></tr>
+    <tr><td>centroid</td><td>spectral centre</td><td>brightness, filter decisions</td></tr>
+    <tr><td>vocal</td><td>lead-vocal likelihood: harmonic fraction of the 200-4000 Hz band, low spectral flatness, centroid in the vocal range. An <code>.lrc</code> sidecar overrides it with real lyric timings.</td><td>vocal-aware cue choice, ducking, clash penalty</td></tr>
+  </table></div>
+  <div class="note">This is a vocal <b>likelihood</b>, not a source separator. It is cheap enough to run on every beat. If your folder has <code>.lrc</code> files, the timestamps are used directly.</div>
+
+  <h2>2. Observation: 41 numbers per beat</h2>
+  <div class="table-wrap"><table>
+    <tr><th>block</th><th>size</th><th>contents</th></tr>
+    <tr><td>global</td><td>4</td><td>progress, remaining, crossfader, filter (normalized)</td></tr>
+    <tr><td>EQ state</td><td>6</td><td>deck A low/mid/high, deck B low/mid/high</td></tr>
+    <tr><td>deck A</td><td>13</td><td>low, mid, high, rms, onset, percussive, harmonic, centroid, vocal, bar energy, downbeat flag, bar position, phrase position</td></tr>
+    <tr><td>deck B</td><td>13</td><td>the same for the incoming deck</td></tr>
+    <tr><td>context</td><td>5</td><td>gain A, gain B, low-band overlap, tempo ratio, key distance</td></tr>
+  </table></div>
+  <p>Everything is clipped to 0..1. The policy can see how far into the transition it is, which deck owns the low end, whether a lead vocal is present, and how far apart the two keys and tempos are.</p>
+
+  <h2>3. Actions: 8 continuous controls</h2>
+  <div class="table-wrap"><table>
+    <tr><th>control</th><th>range</th><th>mapping</th></tr>
+    <tr><td>crossfader</td><td>0..1</td><td>equal-power: gain A = cos(pi/2 f), gain B = sin(pi/2 f)</td></tr>
+    <tr><td>EQ A low/mid/high</td><td>0..1 each</td><td>0 = -18 dB cut, 0.5 = 0 dB, 1 = +6 dB boost</td></tr>
+    <tr><td>EQ B low/mid/high</td><td>0..1 each</td><td>the same for deck B</td></tr>
+    <tr><td>filter (deck B)</td><td>-1..1</td><td>negative = low-pass sweep down to 200 Hz, zero = off, positive = high-pass up to 8 kHz</td></tr>
+  </table></div>
+  <p>Beatmatching is automatic: both decks are on the same beat grid, so the policy spends its actions on the performance instead of on sync. Cue points are phrase starts chosen before the episode, with an option to search the strongest phrases for a demo.</p>
+
+  <h2>4. Reward: what a good transition pays for</h2>
+  <div class="table-wrap"><table>
+    <tr><th>term</th><th>sign / weight</th><th>what it measures</th></tr>
+    <tr><td><code>eq_craft</code></td><td>+0.14</td><td>spectral separation the EQ created, not separation the tracks already had</td></tr>
+    <tr><td><code>bass_swap</code></td><td>+0.20, downbeat 1.5x</td><td>low-band exclusivity held during the blend, once per two bars</td></tr>
+    <tr><td><code>filter_craft</code></td><td>+0.10</td><td>filter engaged where it removes something audible, with a 10-beat budget</td></tr>
+    <tr><td><code>phrase</code></td><td>+0.12</td><td>a gesture placed on a downbeat, max four paying gestures</td></tr>
+    <tr><td><code>busy_hands</code></td><td>-0.34 per extra gesture</td><td>fidgeting past four moves</td></tr>
+    <tr><td><code>jitter</code></td><td>-0.12 per extra reversal</td><td>back-and-forth fader wobble inside four beats</td></tr>
+    <tr><td><code>route</code></td><td>-0.50 per extra reversal</td><td>raking the fader after the one allowed crossing</td></tr>
+    <tr><td><code>continuity</code></td><td>small +/-, scaled by blend</td><td>four-beat smoothed level and spectral jumps; a parked fader earns little</td></tr>
+    <tr><td><code>mud</code></td><td>-0.08 x overlap x blend</td><td>both low bands fighting during the blend</td></tr>
+    <tr><td><code>vocal_clash</code></td><td>-0.12 x min(vocal A, vocal B) x blend</td><td>two lead vocals at once</td></tr>
+    <tr><td><code>vocal_space</code></td><td>+0.05 each</td><td>the non-vocal deck's mids cut back while the other deck carries a lead</td></tr>
+    <tr><td><code>fader_shape</code></td><td>+0.10</td><td>a weak smoothstep prior, so the policy blends instead of parking</td></tr>
+    <tr><td><code>cut_shape</code></td><td>-0.15 / -0.60</td><td>a hard cut, charged more off the downbeat</td></tr>
+    <tr><td><code>mix_quality</code></td><td>terminal, 10 x quality</td><td>blend-time gate x (low exclusivity, level, spectral, arc) plus ending</td></tr>
+    <tr><td><code>end_transition</code></td><td>+2 / -2</td><td>the fader actually reaches deck B</td></tr>
+  </table></div>
+  <p>Two reward games were found by measurement and closed: a parked fader was collecting continuity points, and PPO learned a three-beat cut because it avoided simultaneous playback. Continuity is now gated by blend time, hard cuts are charged, and mix quality requires a real blend.</p>
+
+  <h2>5. Training: expert, clone, then PPO</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Expert</h3>
+      <p>A hand-written DJ follows one smooth fader arc, holds deck B's bass out of the first half, swaps the low end once around the midpoint, and releases a high-pass before the drop. It is the reference and the source of imitation data.</p>
+    </div>
+    <div class="card">
+      <h3>Behavior clone</h3>
+      <p>400 expert episodes, MSE on the policy's mean action. The clone scores about 9.5 under the vocal-aware reward. It is saved with a narrow exploration sigma (log_std -2.8), because a wide sigma makes every PPO rollout a broken blend.</p>
+    </div>
+    <div class="card">
+      <h3>PPO fine-tune</h3>
+      <p>Continuous PPO, 4 parallel environments, 32-beat episodes, gamma 0.99, clipped updates. The 1M-step vocal-aware run reaches eval +14.91, low overlap 0.116 and level jump 0.171, beyond the expert.</p>
+    </div>
+    <div class="card">
+      <h3>Records</h3>
+      <p>Every run writes <code>train_returns.csv</code>, <code>eval.csv</code>, <code>losses.csv</code>, <code>curves.png</code>, <code>report.html</code> and <code>report.md</code> under <code>runs/training/</code>. The player's Training link lists them.</p>
+    </div>
+  </div>
+
+  <h2>6. Rendering: from controls to audio</h2>
+  <ul>
+    <li><b>Beat indexing.</b> Every position is a beat index into the real grid, not a guessed second.</li>
+    <li><b>Tempo match.</b> Deck B is stretched by median(B beat) / median(A beat), then each beat is warped onto A's beat, so a 32-beat blend does not drift.</li>
+    <li><b>EQ.</b> A three-way Linkwitz-Riley 4th-order crossover, with gains automated per sample from the action curve.</li>
+    <li><b>Filter.</b> A two-pole state-variable filter with a smooth cutoff curve.</li>
+    <li><b>Level.</b> Deck B is loudness matched to A before the fader; a slow master gain ride corrects macro level changes by at most 3 dB.</li>
+    <li><b>Vocals.</b> When both lead-vocal curves are high, both mid/high bands duck; when only one is high, the other deck's mids duck under it. The low band is untouched.</li>
+  </ul>
+
+  <h2>7. Reading the metrics</h2>
+  <div class="table-wrap"><table>
+    <tr><th>metric</th><th>meaning</th><th>good direction</th></tr>
+    <tr><td>eval return</td><td>deterministic return on fixed seeds under the full reward</td><td>higher</td></tr>
+    <tr><td>low overlap</td><td>mean low-band overlap of the two decks; lower means one kick owns the low end</td><td>lower</td></tr>
+    <tr><td>level jump</td><td>mean four-beat level change; lower is steadier</td><td>lower</td></tr>
+    <tr><td>mix quality</td><td>terminal craft score, gated by blend time</td><td>higher</td></tr>
+    <tr><td>vocal clash / space</td><td>simultaneous leads penalized, ducking credited</td><td>higher space, lower clash</td></tr>
+    <tr><td>beat hits</td><td>fraction of the beat grid with an onset within 70 ms in the rendered file</td><td>higher, near 1.0</td></tr>
+    <tr><td>level p99 jump</td><td>99th percentile of 250 ms RMS changes in the rendered file</td><td>lower, under about 5 dB</td></tr>
+  </table></div>
+  <p>In the curves, the training return is noisy on purpose: it is the sampled policy. The eval return is the deterministic mean and is the line to judge. Low overlap and level jump should fall together; if one rises, the policy is trading mud for a jump or the other way around.</p>
+
+  <h2>8. Using it</h2>
+  <div class="card">
+    <p><b>Local player</b></p>
+    <pre class="mono">python scripts/serve_v1.py --port 8050</pre>
+    <p>Open the page, paste a music folder in the Library bar or use Browse, then Load folder. Each song is analysed once (about 15 s per song); afterwards the dropdowns are your songs. The model was trained on relative features, so the same checkpoint applies.</p>
+    <p><b>Command line</b></p>
+    <pre class="mono">python scripts/prepare_library_v2.py --audio-dir "D:\Music" --out "D:\Music\manifest_v2.json"
+python scripts/mix_songs.py --data-dir "D:\Music" --track-a "A.mp3" --track-b "B.mp3" \
+  --model models/ppo_v2_final.zip --best-cues --out runs/v1/my_blend.wav</pre>
+    <p><b>Training</b></p>
+    <pre class="mono">python scripts/pretrain_v1.py --episodes 400 --data-dir crate
+python scripts/train_v1.py --resume models/ppo_v2_bc_quiet.zip --timesteps 1000000 \
+  --n-envs 4 --data-dir crate --device cpu --log-dir runs/training</pre>
+  </div>
+
+  <h2>9. Limits</h2>
+  <ul>
+    <li>The vocal signal is a heuristic, not a separator. It can flag a lead instrument as a voice. An <code>.lrc</code> sidecar is exact and overrides it.</li>
+    <li>The commercial 20-song crate is used locally. Audio and rendered mixes are not uploaded.</li>
+    <li>Beatmatching assumes a stable tempo. Beatless intros and odd meters can confuse the beat tracker.</li>
+    <li>Current techniques: phrase cues, bass swap, EQ, filter sweeps, vocal ducking, loudness riding. Loops, echo-outs and key shifting are not in the action space yet.</li>
+  </ul>
+
+  <h2>10. Glossary</h2>
+  <div class="table-wrap"><table>
+    <tr><th>term</th><th>meaning</th></tr>
+    <tr><td>beat grid</td><td>the list of real beat times for a track</td></tr>
+    <tr><td>downbeat</td><td>the first beat of a bar</td></tr>
+    <tr><td>phrase</td><td>eight bars, or 32 beats in this project</td></tr>
+    <tr><td>cue</td><td>the beat where a deck starts playing</td></tr>
+    <tr><td>bass swap</td><td>cutting one deck's lows while opening the other's, so only one kick sounds</td></tr>
+    <tr><td>ducking</td><td>lowering one deck's mids/highs under the other's lead vocal</td></tr>
+    <tr><td>LR4</td><td>Linkwitz-Riley 4th-order crossover</td></tr>
+    <tr><td>SVF</td><td>state-variable filter, used for the smooth filter sweep</td></tr>
+    <tr><td>BC</td><td>behavior cloning, supervised imitation of the expert</td></tr>
+    <tr><td>PPO</td><td>proximal policy optimization, the RL fine-tuning step</td></tr>
+  </table></div>
+
+  <footer>
+    <span>DJSet-v1 · 32-beat phrase-aligned blend · 44.1 kHz</span>
+    <span><a href="/training/">Training records</a> · <a href="/">Player</a></span>
+  </footer>
+</div>
+</body>
+</html>

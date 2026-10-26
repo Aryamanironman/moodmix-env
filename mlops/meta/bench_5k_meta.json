@@ -1,0 +1,15 @@
+{
+  "model": "C:\\Users\\asus\\moodmix-env\\models\\bench_5k.zip",
+  "timesteps": 5000,
+  "n_envs": 8,
+  "n_steps": 256,
+  "batch_size": 256,
+  "seed": 0,
+  "mood": null,
+  "max_steps": 64,
+  "eval_mean_reward": 43.79169821672637,
+  "eval_std_reward": 7.3197065313477045,
+  "eval_episodes": 5,
+  "elapsed_seconds": 23.59,
+  "s3_uri": null
+}

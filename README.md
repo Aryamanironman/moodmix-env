@@ -395,6 +395,19 @@ scripts/                        demo, train, evaluate, serve, import, fetch CLIs
 scripts/recover_transition.py   fader/EQ recovery from a finished mix
 scripts/learn_from_mix.py       clone the policy from a recorded transition
 web/                            browser controller (HTML/CSS/JS)
+src/moodmix_env/env_v1.py       continuous DJ environment (DJSet-v1)
+src/moodmix_env/library_v2.py   beat, downbeat, phrase and vocal analysis
+src/moodmix_env/expert_v1.py    phrase-aware DJ expert
+src/moodmix_env/render_v2.py    beat-warped renderer, LR4 EQ, SVF, ducking
+src/moodmix_env/train_v1.py     BC + PPO training
+src/moodmix_env/logging_v1.py   training records, plots, report
+src/moodmix_env/webapp_v1.py    local player API and folder scanning
+web_v1/                         local player UI and explainer
+scripts/prepare_library_v2.py   any-folder analyzer
+scripts/mix_songs.py            any-song transition renderer
+scripts/serve_v1.py             local player on :8050
+scripts/collect_runs.py         build the MLOps registry
+mlops/                          model/checkpoint registry, hashes, records
 tests/                          env, training, web, library, Spotify tests
 data/demo/                      generated audio + manifest (gitignored audio)
 runs/                           mixdowns and web audio (gitignored)
@@ -407,21 +420,24 @@ the filter are continuous; decks are beatmatched automatically and cued on
 phrase boundaries from the track's actual beat grid.
 
 ```bash
-# analyse any folder once (stores beat times, downbeats, per-beat features)
+# analyse any folder once (beat grid, downbeats, per-beat features, vocal)
 python scripts/prepare_library_v2.py --audio-dir crate --out crate/manifest_v2.json
 
-# clone the phrase-aware expert, then fine-tune with PPO
+# clone the phrase-aware expert, then fine-tune with PPO and records
 python scripts/pretrain_v1.py --episodes 400 --epochs 30 --data-dir crate
-python scripts/train_v1.py --resume models/ppo_v1_bc.zip --timesteps 1000000 \
-  --n-envs 8 --data-dir crate --device cpu
+python scripts/train_v1.py --resume models/ppo_v2_bc_quiet.zip --timesteps 1000000 \
+  --n-envs 4 --data-dir crate --device cpu --log-dir runs/training
 
 # render one transition, samples, a set, or an expert comparison
 python scripts/mix_songs.py --data-dir crate \
   --track-a "1. Blinding Lights.mp3" --track-b "16. The Night We Met.mp3" \
-  --model models/ppo_v1.zip --out runs/v1/blend.wav
-python scripts/demo_v1.py --model models/ppo_v1.zip --samples 6
-python scripts/demo_v1.py --model models/ppo_v1.zip --set --transitions 4
-python scripts/demo_v1.py --model models/ppo_v1.zip --compare
+  --model models/ppo_v2_final.zip --out runs/v1/blend.wav
+python scripts/demo_v1.py --model models/ppo_v2_final.zip --samples 6
+python scripts/demo_v1.py --model models/ppo_v2_final.zip --set --transitions 4
+python scripts/demo_v1.py --model models/ppo_v2_final.zip --compare
+
+# local player: folder scanning, training records and the explainer
+python scripts/serve_v1.py --port 8050
 ```
 
 Why v1 sounds different:
@@ -434,16 +450,34 @@ Why v1 sounds different:
   state-variable filter with a smooth cutoff curve, and deck B is loudness
   matched to A before the fader;
 - the policy sees only relative features (progress, band levels, phrase
-  position, tempo ratio, key distance), so a checkpoint applies to a new crate.
+  position, tempo ratio, key distance), so a checkpoint applies to a new crate;
+- the analysis estimates a per-beat lead-vocal likelihood (an `.lrc` sidecar
+  overrides it with real lyric timings), the reward charges a vocal clash and
+  credits ducking, cue choice prefers a phrase whose vocal is ending, and the
+  renderer ducks the mid/high bands automatically when two leads meet;
+- the local player has a **Library bar**: paste a folder path or press Browse,
+  then Load folder. Each song is analysed once and the manifest is cached under
+  `runs/v1/library_cache`, so the user's music folder is never written to.
 
 The reward pays for bass-swap exclusivity, EQ separation, filter direction,
-phrase timing, level/spectral continuity and a weak fader arc; it charges hard
-cuts and requires real blend time in the terminal score. Two lessons from the
-training runs: a parked fader and a three-beat cut both look "clean" on level
-and overlap, so those terms are gated by blend time; and PPO fine-tuned from a
-clone whose exploration sigma is 0.22 learns the noise-robust cut, not the
-blend. Clone with a narrow sigma (`log_std = -2.8`, saved as
-`models/ppo_v1_bc_quiet.zip`) before fine-tuning, or ship the clone.
+phrase timing, level/spectral continuity, vocal space and a weak fader arc; it
+charges hard cuts, vocal clashes and requires real blend time in the terminal
+score. Two lessons from the training runs: a parked fader and a three-beat cut
+both look "clean" on level and overlap, so those terms are gated by blend time;
+and PPO fine-tuned from a clone whose exploration sigma is 0.22 learns the
+noise-robust cut, not the blend. Clone with a narrow sigma
+(`models/ppo_v2_bc_quiet.zip`) before fine-tuning, or ship the clone.
+
+Every run writes `train_returns.csv`, `eval.csv`, `losses.csv`, `curves.png`
+and `report.html` under `runs/training/`. The player's **Training** link lists
+them, and the [Explainer](web_v1/explainer.html) documents every observation,
+action and reward term.
+
+The 1M vocal-aware run reached eval **+14.91**, low-band overlap **0.116** and
+mean level jump **0.171**. The `mlops/` registry indexes every current and
+previous model and checkpoint with a SHA256 fingerprint, observation size,
+timesteps, eval metadata and copied records; the player serves it at
+`/mlops/`, and `/training/` redirects there.
 
 ## Roadmap
 

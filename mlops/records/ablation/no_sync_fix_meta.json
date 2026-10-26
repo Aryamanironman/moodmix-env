@@ -1,0 +1,20 @@
+{
+  "model": "runs\\ablation\\no_sync_fix.zip",
+  "timesteps": 100000,
+  "n_envs": 4,
+  "n_steps": 256,
+  "batch_size": 256,
+  "seed": 0,
+  "mood": null,
+  "max_steps": 64,
+  "eval_mean_reward": 0.0,
+  "eval_std_reward": 0.0,
+  "eval_episodes": 0,
+  "elapsed_seconds": 161.9,
+  "s3_uri": null,
+  "data_dir": null,
+  "reward_profile": "expressive",
+  "binary_sync": false,
+  "sync_bonus": 0.0,
+  "term_scales": {}
+}

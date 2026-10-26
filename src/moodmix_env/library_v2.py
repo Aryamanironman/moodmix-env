@@ -11,7 +11,9 @@ first detected beat 19 seconds in, and a tracker can report 184 BPM for a
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
+from typing import Callable
 
 import librosa
 import numpy as np
@@ -85,6 +87,53 @@ def _normalise(curve: np.ndarray) -> np.ndarray:
     if reference <= 1e-9:
         return np.zeros_like(curve)
     return np.clip(curve / reference, 0.0, 1.0)
+
+
+def _smooth_frames(values: np.ndarray, width: int = 9) -> np.ndarray:
+    if width <= 1 or len(values) < 2:
+        return np.asarray(values, dtype=np.float32)
+    kernel = np.ones(width, dtype=np.float32) / width
+    return np.convolve(values, kernel, mode="same").astype(np.float32)
+
+
+def _parse_lrc(path: Path) -> list[tuple[float, str]]:
+    events: list[tuple[float, str]] = []
+    try:
+        raw = path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return events
+    for line in raw.splitlines():
+        stamps = re.findall(r"\[(\d{1,2}):(\d{2}(?:\.\d+)?)\]", line)
+        text = re.sub(r"\[[^\]]*\]", "", line).strip()
+        if not stamps or not text:
+            continue
+        for minutes, seconds in stamps:
+            events.append((int(minutes) * 60.0 + float(seconds), text))
+    return sorted(events)
+
+
+def _vocal_curve(y: np.ndarray, y_harm: np.ndarray, sr: int,
+                 spec: np.ndarray, beat_frames: np.ndarray,
+                 n_frames: int, centroid_frames: np.ndarray,
+                 freqs: np.ndarray) -> np.ndarray:
+    """Estimate lead-vocal activity from the harmonic, mid-band, tonal content.
+
+    This is not a separator. It is a cheap proxy for "a lead voice is likely
+    here": harmonic fraction of the 200-4000 Hz band, low spectral flatness
+    (tonal rather than noisy), and a centroid in the vocal range. An .lrc
+    sidecar overrides it with real lyric timings when one exists.
+    """
+    spec_harm = np.abs(librosa.stft(y_harm, n_fft=N_FFT, hop_length=HOP))
+    flatness = librosa.feature.spectral_flatness(S=spec)[0]
+    mid = (freqs >= 200.0) & (freqs <= 4000.0)
+    harmonic_mid = spec_harm[mid].sum(axis=0)
+    total_mid = spec[mid].sum(axis=0)
+    vocal_ratio = harmonic_mid / (total_mid + 1e-9)
+    tonal = 1.0 - np.clip(flatness * 6.0, 0.0, 1.0)
+    centroid_hz = centroid_frames * (sr / 2.0)
+    weight = np.exp(-((centroid_hz - 1200.0) / 1500.0) ** 2)
+    frames = _smooth_frames(vocal_ratio * tonal * weight, 9)
+    return _normalise(_per_beat(frames, beat_frames, n_frames))
 
 
 def _downbeat_phase(y: np.ndarray, sr: int,
@@ -223,6 +272,21 @@ def analyze_track(path: str | Path, mood: str | None = None,
     harm_curve = _normalise(_per_beat(harm_frames, beat_frames, n_frames))
     centroid_curve = _normalise(
         _per_beat(centroid_frames, beat_frames, n_frames))
+    vocal_curve = _vocal_curve(y, y_harm, sr, spec, beat_frames, n_frames,
+                              centroid_frames, freqs)
+    lyric_lines = [""] * len(beat_times)
+    lrc_path = path.with_suffix(".lrc")
+    if lrc_path.exists():
+        events = _parse_lrc(lrc_path)
+        for i, (start, text) in enumerate(events):
+            end = (events[i + 1][0] if i + 1 < len(events)
+                   else min(duration, start + 8.0))
+            mask = (beat_times >= start) & (beat_times < end)
+            for index in np.where(mask)[0]:
+                lyric_lines[int(index)] = text
+            if mask.any():
+                vocal_curve[mask] = 1.0
+    vocal_source = "lrc" if any(lyric_lines) else "audio"
 
     phase = _downbeat_phase(y, sr, beat_frames)
     bar_energy, labels = _sections(rms_curve, phase)
@@ -258,7 +322,10 @@ def analyze_track(path: str | Path, mood: str | None = None,
             "percussive": np.round(perc_curve, 4).tolist(),
             "harmonic": np.round(harm_curve, 4).tolist(),
             "centroid": np.round(centroid_curve, 4).tolist(),
+            "vocal": np.round(vocal_curve, 4).tolist(),
         },
+        "lyrics": lyric_lines,
+        "vocal_source": vocal_source,
         "bar_energy": [round(float(v), 4) for v in bar_energy],
         "sections": labels,
         "cues": cues,
@@ -267,7 +334,9 @@ def analyze_track(path: str | Path, mood: str | None = None,
 
 def build_manifest(audio_dir: str | Path, out_path: str | Path,
                    moods: dict[str, str] | None = None,
-                   sr: int = SR, verbose: bool = True) -> dict:
+                   sr: int = SR, verbose: bool = True,
+                   progress: Callable[[int, int, str], None] | None = None
+                   ) -> dict:
     audio_dir = Path(audio_dir)
     out_path = Path(out_path)
     moods = moods or {}
@@ -277,10 +346,15 @@ def build_manifest(audio_dir: str | Path, out_path: str | Path,
         raise FileNotFoundError(f"no audio files found in {audio_dir}")
 
     tracks = []
-    for path in files:
+    total = len(files)
+    for index, path in enumerate(files, 1):
+        if progress:
+            progress(index, total, path.name)
         if verbose:
             print(f"analyzing {path.name} ...", flush=True)
         tracks.append(analyze_track(path, mood=moods.get(path.stem), sr=sr))
+    if progress:
+        progress(total, total, "done")
     manifest = {
         "version": 2,
         "sample_rate": sr,

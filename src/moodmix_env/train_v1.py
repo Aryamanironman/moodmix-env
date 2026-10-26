@@ -14,6 +14,7 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecMonitor
 
 from .env_v1 import MoodMixV1Env
+from .logging_v1 import TrainingLogger
 
 
 def make_env(data_dir: str | Path | None = None,
@@ -79,7 +80,11 @@ def train(timesteps: int = 1_000_000,
           learning_rate: float = 3e-4,
           ent_coef: float = 0.002,
           vec_env: str = "dummy",
-          compatible_only: bool = False) -> str:
+          compatible_only: bool = False,
+          log_dir: str | Path | None = "runs/training",
+          log_eval_freq: int = 100_000,
+          log_eval_episodes: int = 5,
+          log_save_every: int = 100_000) -> str:
     env_fns = [make_env(data_dir=data_dir, max_steps=max_steps,
                         compatible_only=compatible_only, seed=seed + index)
                for index in range(n_envs)]
@@ -114,6 +119,15 @@ def train(timesteps: int = 1_000_000,
             verbose=verbose,
         ))
 
+    log_path = None
+    if log_dir:
+        log_path = Path(log_dir) / Path(output).stem
+        callbacks.append(TrainingLogger(
+            log_path, data_dir=data_dir, max_steps=max_steps,
+            eval_freq=log_eval_freq, eval_episodes=log_eval_episodes,
+            save_every=log_save_every, verbose=verbose,
+        ))
+
     started = time.time()
     model.learn(total_timesteps=timesteps, callback=callbacks or None,
                 reset_num_timesteps=reset_timesteps,
@@ -137,6 +151,7 @@ def train(timesteps: int = 1_000_000,
         "data_dir": str(data_dir) if data_dir else None,
         "compatible_only": bool(compatible_only),
         "elapsed_seconds": round(elapsed, 2),
+        "log_dir": str(log_path) if log_path else None,
         "eval": metrics,
     }
     (base.parent / f"{base.name}_meta.json").write_text(
@@ -166,6 +181,11 @@ def main() -> None:
     parser.add_argument("--vec-env", choices=("dummy", "subproc"),
                         default="dummy")
     parser.add_argument("--compatible-only", action="store_true")
+    parser.add_argument("--log-dir", type=Path, default=Path("runs/training"),
+                        help="where CSV/plots/report are written")
+    parser.add_argument("--log-eval-freq", type=int, default=100_000)
+    parser.add_argument("--log-eval-episodes", type=int, default=5)
+    parser.add_argument("--log-save-every", type=int, default=100_000)
     parser.add_argument("--tensorboard-log", type=Path, default=None)
     parser.add_argument("--verbose", type=int, default=1)
     args = parser.parse_args()
@@ -183,6 +203,9 @@ def main() -> None:
         device=args.device, learning_rate=args.learning_rate,
         ent_coef=args.ent_coef, vec_env=args.vec_env,
         compatible_only=args.compatible_only,
+        log_dir=args.log_dir, log_eval_freq=args.log_eval_freq,
+        log_eval_episodes=args.log_eval_episodes,
+        log_save_every=args.log_save_every,
     )
     print(f"model: {path}")
     meta = Path(path).with_name(Path(path).stem + "_meta.json")

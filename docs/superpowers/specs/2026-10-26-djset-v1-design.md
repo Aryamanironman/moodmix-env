@@ -102,6 +102,27 @@ And one optimisation trap: behavior cloning with a wide exploration sigma
 noise-robust cut. Clone with `log_std = -2.8` first; then PPO preserves and
 improves the blend.
 
+## Update: vocals, folder scanning, records
+
+The second pass adds:
+
+- a per-beat **vocal likelihood** (harmonic fraction of 200-4000 Hz, low
+  spectral flatness, vocal-range centroid), with `.lrc` timings taking
+  precedence when present;
+- **41-float observation** (vocal is the ninth per-deck feature);
+- reward terms `vocal_clash` and `vocal_space`, plus vocal-shaped cue choice;
+- renderer **ducking**: when both leads are present both mid/high bands give
+  way, when one is present the other deck ducks under it;
+- a **Library bar** in the local player that scans any folder, analyses it
+  once, caches the manifest under `runs/v1/library_cache`, and swaps the
+  dropdowns without writing to the user's music folder;
+- a **TrainingLogger** that writes episode returns, deterministic eval
+  metrics, losses, `curves.png`, `report.html` and `report.md` under
+  `runs/training/`, plus `/training` and `/explainer` pages in the player.
+
+The Vercel static showcase was removed. The demo is the local PC player on
+`:8050`; commercial audio stays local.
+
 ## Constraints
 
 Five hours from 2026-10-26, CPU only, no new dependencies beyond installed

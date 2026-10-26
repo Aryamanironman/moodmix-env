@@ -23,7 +23,7 @@ from gymnasium import spaces
 
 KEY_NAMES = ("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
 FEATURE_NAMES = ("low", "mid", "high", "rms", "onset", "percussive",
-                 "harmonic", "centroid")
+                 "harmonic", "centroid", "vocal")
 EQ_CUT_DB = -18.0
 EQ_BOOST_DB = 6.0
 FILTER_BUDGET = 10
@@ -132,7 +132,7 @@ class MoodMixV1Env(gym.Env):
             dtype=np.float32,
         )
         self.observation_space = spaces.Box(
-            0.0, 1.0, shape=(39,), dtype=np.float32)
+            0.0, 1.0, shape=(41,), dtype=np.float32)
         self._pairs = self._candidate_pairs()
         self._init_state()
 
@@ -210,6 +210,20 @@ class MoodMixV1Env(gym.Env):
                                  end_section, 1.0)
                 weight = (base * (0.2 + end_e) * (0.3 + low_block)
                           * end_bonus)
+            vocal = track["features"].get("vocal")
+            if vocal is not None:
+                window_v = np.asarray(vocal[beat:beat + self.max_steps],
+                                      dtype=np.float32)
+                if len(window_v) >= 8:
+                    start_v = float(np.mean(window_v[:8]))
+                    end_v = float(np.mean(window_v[-8:]))
+                    if role == "a":
+                        # Prefer a phrase whose vocal is ending as B enters.
+                        weight *= 1.0 + 0.7 * max(0.0, start_v - end_v)
+                    else:
+                        # Prefer B's vocal to arrive after the blend starts.
+                        weight *= 1.0 + 0.7 * max(0.0, end_v - start_v)
+                        weight *= max(0.0, 1.0 - 0.35 * start_v)
             if low_block < 0.22:
                 weight *= 0.5
             cue["_weight"] = max(0.0, weight)
@@ -401,12 +415,21 @@ class MoodMixV1Env(gym.Env):
                          for name in ("low", "mid", "high")],
                         dtype=np.float32)
 
+    def _vocal(self, track: dict, beat: int) -> float:
+        curve = track["features"].get("vocal")
+        if curve is None:
+            return 0.0
+        index = int(np.clip(beat, 0, len(curve) - 1))
+        return float(curve[index])
+
     def _reward_components(self, action: np.ndarray
                            ) -> tuple[dict[str, float], dict[str, float]]:
         beat_a = self.cue_a + self.step_count
         beat_b = self.cue_b + self.step_count
         bands_a = self._bands(self.track_a, beat_a)
         bands_b = self._bands(self.track_b, beat_b)
+        vocal_a = self._vocal(self.track_a, beat_a)
+        vocal_b = self._vocal(self.track_b, beat_b)
         eq_a = _eq_gains(self.eq_a)
         eq_b = _eq_gains(self.eq_b)
         gain_a = float(np.cos(self.fader * np.pi / 2.0))
@@ -548,6 +571,11 @@ class MoodMixV1Env(gym.Env):
             "route": route,
             "continuity": continuity,
             "mud": mud,
+            # Two lead vocals at once is the clearest "two songs" tell.  The
+            # credit for cutting the non-vocal deck's mids teaches ducking.
+            "vocal_clash": -0.12 * min(vocal_a, vocal_b) * blend,
+            "vocal_space": (0.05 if vocal_b > 0.5 and self.eq_a[1] < 0.4 else 0.0)
+                           + (0.05 if vocal_a > 0.5 and self.eq_b[1] < 0.4 else 0.0),
             "fader_shape": 0.10 * shape,
             "cut_shape": cut_penalty,
         }
@@ -562,6 +590,7 @@ class MoodMixV1Env(gym.Env):
             "spectral": spectral, "low_overlap": low_overlap,
             "level": level, "level_smooth": level_smooth,
             "level_jump": level_jump, "spectral_jump": spectral_jump,
+            "vocal_a": vocal_a, "vocal_b": vocal_b,
             "jump": abs(fader_delta), "target": target, "shape": shape,
             "cut_penalty": cut_penalty,
             "beat_a": float(beat_a), "beat_b": float(beat_b),
