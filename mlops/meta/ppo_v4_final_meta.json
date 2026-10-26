@@ -1,0 +1,28 @@
+{
+  "model": "models\\ppo_v4_final.zip",
+  "timesteps": 1000000,
+  "n_envs": 8,
+  "n_steps": 256,
+  "seed": 2,
+  "max_steps": 128,
+  "data_dir": null,
+  "compatible_only": false,
+  "elapsed_seconds": 680.78,
+  "log_dir": "runs\\training\\ppo_v4_final",
+  "eval": {
+    "mean": 75.71582272648811,
+    "std": 0.0,
+    "final_fader": 1.0,
+    "low_overlap": 0.0,
+    "level_jump": 0.012477770327787852,
+    "component_mashup": 7.3338137130737335,
+    "component_stem_balance": 8.620250593870878,
+    "component_structure": 56.783935309384105,
+    "component_echo_use": 0.1433315412432421,
+    "component_echo_hold": 0.0,
+    "component_filter_use": 1.3824064759537578,
+    "component_silence": 0.0,
+    "component_smooth": -0.04791463805870533,
+    "component_final_mashup": 1.5
+  }
+}

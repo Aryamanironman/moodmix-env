@@ -1,0 +1,9 @@
+{
+  "run": "ppo_v3_final",
+  "data_dir": "crate",
+  "max_steps": 32,
+  "eval_freq": 100000,
+  "eval_episodes": 5,
+  "episodes_logged": 9408,
+  "elapsed_seconds": 314.5
+}

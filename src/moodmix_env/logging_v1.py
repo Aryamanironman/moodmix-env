@@ -30,12 +30,13 @@ class TrainingLogger(BaseCallback):
     def __init__(self, out_dir: str | Path, data_dir: str | Path | None = None,
                  max_steps: int = 32, eval_freq: int = 100_000,
                  eval_episodes: int = 5, save_every: int = 100_000,
-                 verbose: int = 1) -> None:
+                 verbose: int = 1, env_cls=MoodMixV1Env) -> None:
         super().__init__(verbose)
         self.out_dir = Path(out_dir)
         self.out_dir.mkdir(parents=True, exist_ok=True)
         self.data_dir = Path(data_dir) if data_dir else None
         self.max_steps = int(max_steps)
+        self.env_cls = env_cls
         self.eval_freq = int(eval_freq)
         self.eval_episodes = int(eval_episodes)
         self.save_every = int(save_every)
@@ -58,10 +59,10 @@ class TrainingLogger(BaseCallback):
                 })
         if self.num_timesteps >= self.next_eval:
             self._run_eval()
-            self.next_eval += self.eval_freq
+            self.next_eval = ((self.num_timesteps // self.eval_freq) + 1)                 * self.eval_freq
         if self.num_timesteps >= self.next_save:
             self.write()
-            self.next_save += self.save_every
+            self.next_save = ((self.num_timesteps // self.save_every) + 1)                 * self.save_every
         return True
 
     def _losses(self) -> dict[str, float]:
@@ -69,7 +70,7 @@ class TrainingLogger(BaseCallback):
         return {key: float(values.get(key, float("nan"))) for key in LOSS_KEYS}
 
     def _run_eval(self) -> None:
-        env = MoodMixV1Env(data_dir=self.data_dir, max_steps=self.max_steps)
+        env = self.env_cls(data_dir=self.data_dir, max_steps=self.max_steps)
         returns: list[float] = []
         finals: list[float] = []
         overlaps: list[float] = []

@@ -10,7 +10,7 @@ The repo now includes the environment, a PPO training loop with checkpointing
 and S3 sync, a browser controller, an evaluation harness against a hand-written
 human baseline, and adapters for your own music library.
 
-![MoodMix Silver Booth player](web_v1/preview.png)
+![MoodMix Silver Booth live v3](web_v1/preview.png)
 
 ## Quickstart
 
@@ -480,6 +480,46 @@ mean level jump **0.171**. The `mlops/` registry indexes every current and
 previous model and checkpoint with a SHA256 fingerprint, observation size,
 timesteps, eval metadata and copied records; the player serves it at
 `/mlops/`, and `/training/` redirects there.
+
+## DJSet-v3: drums and echo
+
+`MoodMix/DJSet-v3` adds four controls to DJSet-v1: drum A, drum B, echo A and
+echo B. Drums are the percussive HPSS stem, so the policy can drop or swap the
+drum pattern while the vocal and harmonic content stays. Echo is a beat-synced
+send. The reward adds drum craft, drum swap, drum clash, echo use and echo
+hold terms, so a short throw pays and a held wash does not.
+
+```bash
+# clone the v3 expert, then fine-tune with PPO
+python scripts/pretrain_v3.py --episodes 400 --epochs 30 --data-dir crate
+python scripts/train_v3.py --resume models/ppo_v3_bc.zip --timesteps 1000000 \
+  --n-envs 8 --data-dir crate --device cpu
+
+# the local player now defaults to the v3 model
+python scripts/serve_v1.py --port 8050
+```
+
+The 1M fine-tune from a high-score v3 checkpoint reached eval **+17.84**,
+low-band overlap **0.065** and mean level jump **0.192**. The booth runs the
+32-beat transition with the v3 model. The full-song stem renderer remains in
+the codebase but is not the default; the player is back to the transition clip.
+
+## DJSet-v4: stem remix experiment
+
+`MoodMixV4Env` learns a 128-beat stem arrangement with six controls: A vocal,
+B drums, B bass, B other, echo and filter. The 1M PPO run on the Blinding Lights
+and The Night We Met Demucs stems reached eval **75.72** against an expert
+**76.53**. The reward scale is different from v3, so the numbers are not directly
+comparable.
+
+```bash
+python scripts/prepare_remix_features.py
+python scripts/pretrain_v4.py --episodes 400 --epochs 30
+python scripts/train_v4.py --resume models/ppo_v4_bc.zip --timesteps 1000000   --max-steps 128 --n-envs 8 --device cpu
+```
+
+This is a standalone remix experiment on one song pair. The booth and the
+shipping transition model remain on DJSet-v3.
 
 ## Roadmap
 

@@ -68,8 +68,7 @@ python scripts/import_spotify.py \
   --audio-dir ./crate
 ```
 
-This writes `crate/manifest.json` with BPM, key, per-beat low/mid/high energy,
-sections and an inferred mood. To inspect a local folder without Spotify:
+This writes `crate/manifest_v2.json` in the format the current DJSet-v1/v3/v4 environment reads: BPM, key, downbeat phase, per-beat low/mid/high energy, percussive/harmonic energy, vocal likelihood, sections and cues. To inspect a local folder without Spotify:
 
 ```bash
 python scripts/analyze_library.py --audio-dir ./crate
@@ -85,15 +84,15 @@ Mood is inferred from tempo, major/minor mode and energy. Spotify's audio
 features endpoint is not available to new apps, which is why the analysis runs
 on your own audio.
 
-## 5. Train and demo on the crate
+## 5. Load the matched crate in the booth
 
 ```bash
-python scripts/train.py --data-dir ./crate --timesteps 1000000 --n-envs 16 --vec-env subproc
-python scripts/serve_demo.py --data-dir ./crate --model models/ppo_1m.zip
+python scripts/serve_v1.py --port 8052
 ```
 
-The environment loads `crate/manifest.json`; `file` entries point at the audio
-next to it (absolute paths also work).
+In the Library bar, paste the same audio folder and press Load. The scan finds
+`manifest_v2.json`, reuses it if it is newer than the audio files, and builds
+the crate. The full-song player reads the files next to the manifest.
 
 ## Limitations
 

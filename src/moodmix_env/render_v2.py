@@ -208,6 +208,102 @@ def _filter_curves(filter_action: np.ndarray, sr: int) -> tuple[np.ndarray,
     return lp_cutoff.astype(np.float32), hp_cutoff.astype(np.float32), highpass
 
 
+def prepare_decks(env, sr: int = 44100,
+                  peak: float = 0.80) -> tuple[np.ndarray, np.ndarray]:
+    """Return two dry, beat-aligned, loudness-matched decks for live mixing.
+
+    The decks contain the same time stretch, beat warp and vocal ducking as
+    ``render_mix``, but no fader, EQ, filter or master ride.  The browser
+    applies those live, so the user can take over any control.
+    """
+    track_a = env.track_a
+    track_b = env.track_b
+    cue_a = int(env.cue_a)
+    cue_b = int(env.cue_b)
+    trace = env.trace
+    if not trace:
+        raise ValueError("no episode to render: run at least one step first")
+    if "action" not in trace[0]:
+        raise ValueError("DJSet-v1 traces need per-step 'action' arrays")
+
+    n_steps = len(trace)
+    ta = np.asarray(track_a["beat_times"], dtype=np.float64)
+    tb = np.asarray(track_b["beat_times"], dtype=np.float64)
+    beat_a = float(np.median(np.diff(ta)))
+    beat_b = float(np.median(np.diff(tb)))
+    rate = beat_b / beat_a
+
+    start_a = float(ta[cue_a])
+    end_index = min(cue_a + n_steps, len(ta) - 1)
+    duration = float(ta[end_index] - start_a)
+    if duration <= 0.1:
+        raise ValueError("transition has no duration")
+
+    audio_a = load_track(env.data_dir / track_a["file"], sr)
+    audio_b = load_track(env.data_dir / track_b["file"], sr)
+    deck_a = _slice(audio_a, sr, start_a, duration)
+    need_b = duration * rate
+    deck_b = _slice(audio_b, sr, float(tb[cue_b]), need_b)
+    deck_b = _time_stretch(deck_b, rate)
+    deck_b = _fit_length(deck_b, len(deck_a))
+
+    dst_rel = ta[cue_a:end_index + 1] - start_a
+    src_rel = (tb[cue_b:cue_b + len(dst_rel)] - tb[cue_b]) / rate
+    src_rel = src_rel - src_rel[0]
+    if len(src_rel) == len(dst_rel) and np.all(np.diff(src_rel) > 0):
+        if float(np.max(np.abs(src_rel - dst_rel))) > 0.004:
+            deck_b = _warp(deck_b, src_rel, dst_rel, sr)
+
+    n = len(deck_a)
+    actions = np.asarray([np.asarray(t["action"], dtype=np.float32)
+                          for t in trace], dtype=np.float32)
+    action_t = dst_rel[:len(actions)]
+    sample_t = np.arange(n, dtype=np.float64) / sr
+
+    vocal_a = np.asarray(track_a["features"].get(
+        "vocal", np.zeros(len(ta))), dtype=np.float32)
+    vocal_b = np.asarray(track_b["features"].get(
+        "vocal", np.zeros(len(tb))), dtype=np.float32)
+    step_idx = np.arange(len(actions))
+    beat_idx_a = np.clip(cue_a + step_idx, 0, len(vocal_a) - 1)
+    beat_idx_b = np.clip(cue_b + step_idx, 0, len(vocal_b) - 1)
+    va = np.interp(sample_t, action_t,
+                   _smooth_steps(vocal_a[beat_idx_a])).astype(np.float32)
+    vb = np.interp(sample_t, action_t,
+                   _smooth_steps(vocal_b[beat_idx_b])).astype(np.float32)
+    both = np.minimum(va, vb)
+    duck_a = np.clip(1.0 - 0.45 * both
+                     - 0.25 * np.clip(vb - va, 0.0, 1.0), 0.25, 1.0)
+    duck_b = np.clip(1.0 - 0.30 * both
+                     - 0.20 * np.clip(va - vb, 0.0, 1.0), 0.25, 1.0)
+
+    a_low, a_mid, a_high = _split(deck_a, sr)
+    b_low, b_mid, b_high = _split(deck_b, sr)
+    a_dry = a_low + a_mid * duck_a[:, None] + a_high * duck_a[:, None]
+    b_dry = b_low + b_mid * duck_b[:, None] + b_high * duck_b[:, None]
+
+    env_a = _smooth(_rms_envelope(deck_a, sr), 24)
+    env_b = _smooth(_rms_envelope(deck_b, sr), 24)
+    match = np.clip(env_a / (env_b + 1e-6), 0.5, 2.0)
+    match = _smooth(match, 32)
+    match_t = np.linspace(0.0, duration, len(match))
+    b_dry = b_dry * np.interp(sample_t, match_t, match)[:, None].astype(
+        np.float32)
+
+    loudest = max(float(np.max(np.abs(a_dry))),
+                  float(np.max(np.abs(b_dry))), 1e-9)
+    scale = peak / loudest
+    a_dry = (a_dry * scale).astype(np.float32)
+    b_dry = (b_dry * scale).astype(np.float32)
+
+    fade = min(len(a_dry) // 2, max(1, int(0.010 * sr)))
+    ramp = np.linspace(0.0, 1.0, fade, dtype=np.float32)[:, None]
+    for deck in (a_dry, b_dry):
+        deck[:fade] *= ramp
+        deck[-fade:] *= ramp[::-1]
+    return a_dry, b_dry
+
+
 def render_mix(env, sr: int = 44100) -> tuple[np.ndarray, int]:
     """Render one DJSet-v1 episode to float32 stereo samples."""
     track_a = env.track_a

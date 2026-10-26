@@ -379,6 +379,42 @@
   .vu i.on{background:#57e08c}
   .vu i.on.warn{background:#f0c53a}
   .vu i.on.hot{background:#ff4b3e}
+  .perf-bar{display:flex;align-items:center;gap:9px;padding:7px 10px;margin-bottom:10px;
+    border:1px solid #b6bec3;border-radius:4px;
+    background:linear-gradient(180deg,#e4e7e9,#d2d6d8);
+    font-family:var(--mono);font-size:12px;color:#3f4a50;flex-wrap:wrap}
+  .perf-bar .tag{font-size:12px;letter-spacing:.08em;color:#5d666c}
+  .perf-bar .mode{background:#121619;border:1px solid #8f989d}
+  #live-status{flex:1;min-width:180px;color:#3f4a50}
+  #live-status b{color:#a84a06}
+  .perf-btn{background:#dfe3e5;border:1px solid #8c9499;color:#2a3237;
+    font-family:var(--mono);font-size:12px;padding:5px 8px;border-radius:2px;cursor:pointer}
+  .perf-btn:hover{border-color:#a84a06;color:#a84a06}
+  .perf-btn:disabled{opacity:1;color:#5d666c;background:#e6e9ea;
+    border-color:#c3c9cc;cursor:default}
+  .key-help{color:#5d666c;font-size:14px;margin-left:auto;white-space:nowrap}
+  .knob-wrap{position:relative;width:34px;height:34px;cursor:grab;touch-action:none}
+  .knob-wrap:active{cursor:grabbing}
+  .filter .knob-wrap{width:42px;height:42px}
+  .knob-wrap .knob{pointer-events:none}
+  .ghost-ring{position:absolute;inset:-5px;border-radius:50%;
+    border:1px dashed #b07025;pointer-events:none;opacity:.55}
+  .ghost-ring i{position:absolute;left:50%;top:1px;width:2px;height:6px;
+    background:#b07025;transform-origin:50% 21px;
+    transform:translateX(-50%) rotate(0deg)}
+  .filter .ghost-ring i{top:2px;height:7px;transform-origin:50% 25px}
+  .cross{cursor:ew-resize;touch-action:none}
+  .cross .ghost-cap{position:absolute;left:0;top:2px;width:25px;height:25px;
+    transform:translateX(-50%);border:1px dashed #b07025;border-radius:2px;
+    pointer-events:none;opacity:.9}
+  .live-line{fill:none;stroke:#f7fafc;stroke-width:2;stroke-linejoin:round;
+    stroke-linecap:round;opacity:.95}
+  .transition-band{fill:#b07025;opacity:.10}
+  .band-label{fill:#c18a35;font-family:var(--mono);font-size:14px;
+    letter-spacing:.08em}
+  #chart{touch-action:none}
+  #seek{touch-action:none}
+  @media(max-width:1180px){.key-help{display:none}}
   .deck.active{box-shadow:inset 0 0 0 1px #c18a35}
   .record.current{border-color:#2d7a52}
   @media(max-width:900px){
@@ -414,7 +450,7 @@
   <main class="console">
     <i class="screw tl"></i><i class="screw tr"></i><i class="screw bl"></i><i class="screw br"></i>
     <div class="console-head">
-      <div class="model">Model <b id="model-name">PPO v2</b><span id="model-note">1M / vocal</span></div>
+      <div class="model">Model <b id="model-name">PPO v3</b><span id="model-note">1M / drums + echo</span></div>
       <div class="head-controls">
         <div class="mode" id="policy-seg">
           <button data-policy="model" class="active">Model</button>
@@ -425,6 +461,19 @@
         <button id="next-pair">Next pair</button>
       </div>
       <div class="status"><i></i><span id="status-text">Loading library...</span></div>
+    </div>
+
+    <div class="perf-bar">
+      <span class="tag">Performance</span>
+      <div class="mode" id="live-mode">
+        <button data-mode="auto" class="active">Auto</button>
+        <button data-mode="copilot">Co-pilot</button>
+        <button data-mode="manual">Manual</button>
+      </div>
+      <span id="live-status"><b>Auto</b> / model driving</span>
+      <button class="perf-btn" id="reengage" disabled>Re-engage</button>
+      <button class="perf-btn" id="midi">MIDI</button>
+      <span class="key-help" title="A/D crossfader; Q/W deck A low, E/R deck A mid, T/Y deck A high; U/I deck B low, O/P deck B mid, [ ] deck B high; F/G filter, H center; Space play, 0 restart">A/D fader / Q..] EQ / F filter / Space</span>
     </div>
 
     <div class="deck-grid">
@@ -447,33 +496,33 @@
       </section>
 
       <section class="mixer">
-        <div class="mixer-head"><span>Mixer</span><b id="mix-score">-</b></div>
+        <div class="mixer-head"><span>Mixer / plan</span><b id="mix-score" title="Model plan score for the transition, not the live take">-</b></div>
         <div class="channels">
           <div class="channel">
             <div class="ch-name">Ch A</div>
             <div class="knobs">
-              <div class="eq-block"><div class="knob" id="eq-a0"></div><div class="knob-label">Low</div></div>
-              <div class="eq-block"><div class="knob" id="eq-a1"></div><div class="knob-label">Mid</div></div>
-              <div class="eq-block"><div class="knob" id="eq-a2"></div><div class="knob-label">High</div></div>
+              <div class="eq-block"><div class="knob-wrap"><div class="knob" id="eq-a0"></div><span class="ghost-ring" id="eq-a0-ghost"><i></i></span></div><div class="knob-label">Low</div></div>
+              <div class="eq-block"><div class="knob-wrap"><div class="knob" id="eq-a1"></div><span class="ghost-ring" id="eq-a1-ghost"><i></i></span></div><div class="knob-label">Mid</div></div>
+              <div class="eq-block"><div class="knob-wrap"><div class="knob" id="eq-a2"></div><span class="ghost-ring" id="eq-a2-ghost"><i></i></span></div><div class="knob-label">High</div></div>
             </div>
             <div class="vu" id="vu-a"></div>
           </div>
           <div class="channel">
             <div class="ch-name">Ch B</div>
             <div class="knobs">
-              <div class="eq-block"><div class="knob" id="eq-b0"></div><div class="knob-label">Low</div></div>
-              <div class="eq-block"><div class="knob" id="eq-b1"></div><div class="knob-label">Mid</div></div>
-              <div class="eq-block"><div class="knob" id="eq-b2"></div><div class="knob-label">High</div></div>
+              <div class="eq-block"><div class="knob-wrap"><div class="knob" id="eq-b0"></div><span class="ghost-ring" id="eq-b0-ghost"><i></i></span></div><div class="knob-label">Low</div></div>
+              <div class="eq-block"><div class="knob-wrap"><div class="knob" id="eq-b1"></div><span class="ghost-ring" id="eq-b1-ghost"><i></i></span></div><div class="knob-label">Mid</div></div>
+              <div class="eq-block"><div class="knob-wrap"><div class="knob" id="eq-b2"></div><span class="ghost-ring" id="eq-b2-ghost"><i></i></span></div><div class="knob-label">High</div></div>
             </div>
             <div class="vu" id="vu-b"></div>
           </div>
         </div>
         <div class="filter">
-          <div class="knob" id="filter-knob"></div>
+          <div class="knob-wrap"><div class="knob" id="filter-knob"></div><span class="ghost-ring" id="filter-knob-ghost"><i></i></span></div>
           <div class="knob-label">Filter B</div>
           <div class="filter-value" id="filter-val">Off</div>
         </div>
-        <div class="cross"><div class="rail"></div><div class="cap" id="cross-cap"></div></div>
+        <div class="cross"><div class="rail"></div><div class="ghost-cap" id="cross-ghost"></div><div class="cap" id="cross-cap"></div></div>
         <div class="cross-labels"><span>A</span><span>Fader</span><span>B</span></div>
         <div class="fx-row"><span>Beat FX</span><button>Echo</button><button>Loop 4</button><button>Loop 8</button><span class="duck">Duck</span></div>
         <div class="transport">
@@ -504,7 +553,7 @@
 
     <section class="scope">
       <div class="scope-head">
-        <span>Transition / fader vs target</span>
+        <span id="scope-title">Transition / fader vs target</span>
         <span>Low <b id="low">-</b> / Jump <b id="jump">-</b> / Vocal <b id="vocal">-</b></span>
       </div>
       <svg id="chart" viewBox="0 0 1000 170" preserveAspectRatio="none" role="img" aria-label="Fader, target, level and low-band overlap"></svg>
@@ -526,7 +575,23 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const audio = $("#audio");
-  const state = { library: null, data: null, policy: "model", raf: 0, byId: {}, maxA: 1, maxB: 1 };
+  const state = {
+    library: null, data: null, policy: "model", mode: "auto",
+    raf: 0, byId: {}, maxA: 1, maxB: 1,
+    live: false, ready: false, playing: false, offset: 0, full: false,
+    bGain: 1,
+    ctx: null, buffers: null, graph: null, sources: null, startAt: 0,
+    media: null, mediaSources: null,
+    echoGate: { a: { active: false, start: 0 },
+                b: { active: false, start: 0 } },
+    liveTrace: [], lastTrace: -1, drag: null, midi: null,
+    wasPlayingSeek: false,
+    model: { fader: 0, eqA: [0.5, 0.5, 0.5], eqB: [0.5, 0.5, 0.5], filter: 0 },
+    actual: { fader: 0, eqA: [0.5, 0.5, 0.5], eqB: [0.5, 0.5, 0.5], filter: 0 },
+    user: { fader: 0, eqA: [0.5, 0.5, 0.5], eqB: [0.5, 0.5, 0.5], filter: 0 },
+    takeover: { fader: false, eqA: [false, false, false], eqB: [false, false, false], filter: false }
+  };
+  window.__moodmix = state;
 
   const fmt = (s) => {
     if (!Number.isFinite(s)) return "0:00";
@@ -625,11 +690,14 @@
 
   function resetVisuals() {
     $("#cross-cap").style.left = "0%";
+    $("#cross-ghost").style.left = "0%";
     $("#filter-knob").style.transform = "rotate(0deg)";
     $("#filter-val").textContent = "Off";
     for (const id of ["#eq-a0", "#eq-a1", "#eq-a2", "#eq-b0", "#eq-b1", "#eq-b2"]) {
       $(id).style.transform = "rotate(0deg)";
+      setGhost(id, 0.5);
     }
+    setGhost("#filter-knob", 0.5);
     for (const id of ["#vu-a", "#vu-b"]) {
       $$(`${id} i`).forEach(bar => bar.classList.remove("on"));
     }
@@ -642,10 +710,16 @@
 
   function clearRender() {
     cancelAnimationFrame(state.raf);
+    stopLive();
     audio.pause();
     audio.removeAttribute("src");
     audio.load();
     state.data = null;
+    state.mode = "auto";
+    state.takeover = { fader: false, eqA: [false, false, false], eqB: [false, false, false], filter: false };
+    state.liveTrace = [];
+    state.lastTrace = -1;
+    updateLiveStatus();
     $("#chart").innerHTML = "";
     $("#components").innerHTML = "";
     $("#mix-score").textContent = "-";
@@ -680,8 +754,12 @@
   }
 
   function drawDeckWaves(data) {
-    const aVals = data.steps.map(s => s.mix_a.reduce((x, y) => x + y, 0));
-    const bVals = data.steps.map(s => s.mix_b.reduce((x, y) => x + y, 0));
+    const aVals = data.wave_a && data.wave_a.length
+      ? data.wave_a
+      : data.steps.map(s => s.mix_a.reduce((x, y) => x + y, 0));
+    const bVals = data.wave_b && data.wave_b.length
+      ? data.wave_b
+      : data.steps.map(s => s.mix_b.reduce((x, y) => x + y, 0));
     $("#wave-a").innerHTML = `<path d="${wavePath(aVals, 320, 38)}"></path>`;
     $("#wave-b").innerHTML = `<path d="${wavePath(bVals, 320, 38)}"></path>`;
   }
@@ -689,6 +767,13 @@
   function setKnob(id, value) {
     const knob = $(id);
     if (knob) knob.style.transform = `rotate(${(-135 + value * 270).toFixed(1)}deg)`;
+  }
+
+  function setGhost(id, value) {
+    const ring = $(`${id}-ghost`);
+    const tick = ring ? ring.querySelector("i") : null;
+    if (tick) tick.style.transform =
+      `translateX(-50%) rotate(${(-135 + value * 270).toFixed(1)}deg)`;
   }
 
   function setVu(id, level, max) {
@@ -706,26 +791,74 @@
     }).join(" ");
   }
 
+  function timedPath(points, x0, y0, width, height, duration) {
+    if (!points.length || duration <= 0) return "";
+    return points.map((point, i) => {
+      const t = Math.max(0, Math.min(duration, point.t));
+      const x = x0 + (t / duration) * width;
+      const y = y0 + (1 - clamp01(point.v)) * height;
+      return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+  }
+
   function buildChart(data) {
     const W = 1000, H = 170, L = 52, R = 16, T = 12, B = 22;
     const width = W - L - R, height = H - T - B;
     const y = v => T + (1 - v) * height;
     const x = t => L + (t / data.duration) * width;
+    const full = Boolean(data.full);
     let inner = "";
     for (const value of [0, 0.25, 0.5, 0.75, 1]) {
       inner += `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y(value)}" y2="${y(value)}"></line>`;
       inner += `<text class="axis" x="${L - 6}" y="${y(value) + 3}" text-anchor="end">${value.toFixed(2)}</text>`;
     }
     for (const [i, t] of [0, data.duration / 2, data.duration].entries()) {
-      inner += `<text class="axis" x="${x(t)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === 2 ? "end" : "middle"}">${t.toFixed(1)}s</text>`;
+      const label = full ? fmt(t) : `${t.toFixed(1)}s`;
+      inner += `<text class="axis" x="${x(t)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === 2 ? "end" : "middle"}">${label}</text>`;
+    }
+    if (full) {
+      const start = data.transition_start || 0;
+      const end = data.transition_end || start;
+      if (end > start) {
+        const left = x(start);
+        const right = x(end);
+        inner += `<rect class="transition-band" x="${left.toFixed(1)}" y="${T}" width="${Math.max(2, right - left).toFixed(1)}" height="${height}"></rect>`;
+        inner += `<text class="band-label" x="${((left + right) / 2).toFixed(1)}" y="${T + 14}" text-anchor="middle">TRANSITION</text>`;
+      }
+      const maxLevel = Math.max(...data.steps.map(s => s.level), 1e-6);
+      const levelPoints = data.steps.map((s, i) =>
+        ({ t: start + data.beat_times[i], v: s.level / maxLevel }));
+      const overlapPoints = data.steps.map((s, i) =>
+        ({ t: start + data.beat_times[i], v: s.low_overlap }));
+      const targetPoints = [{ t: 0, v: 0 }, { t: start, v: 0 },
+        ...data.steps.map((s, i) =>
+          ({ t: start + data.beat_times[i], v: s.target })),
+        { t: end, v: 1 }, { t: data.duration, v: 1 }];
+      const faderPoints = [{ t: 0, v: 0 }, { t: start, v: 0 },
+        ...data.steps.map((s, i) =>
+          ({ t: start + data.beat_times[i], v: s.fader })),
+        { t: end, v: 1 }, { t: data.duration, v: 1 }];
+      inner += `<path class="level-line" d="${timedPath(levelPoints, L, T, width, height, data.duration)}"></path>`;
+      inner += `<path class="overlap-line" d="${timedPath(overlapPoints, L, T, width, height, data.duration)}"></path>`;
+      inner += `<path class="target-line" d="${timedPath(targetPoints, L, T, width, height, data.duration)}"></path>`;
+      inner += `<path class="fader-line" d="${timedPath(faderPoints, L, T, width, height, data.duration)}"></path>`;
+      inner += `<path class="live-line" id="live-line" d=""></path>`;
+      inner += `<line class="playhead" id="playhead" x1="${L}" x2="${L}" y1="${T}" y2="${H - B}"></line>`;
+      $("#chart").innerHTML = inner;
+      const title = $("#scope-title");
+      if (title) title.textContent = "Song timeline / amber plan, white yours";
+      return;
     }
     const maxLevel = Math.max(...data.steps.map(s => s.level), 1e-6);
     inner += `<path class="level-line" d="${linePath(data.steps.map(s => s.level / maxLevel), L, T, width, height)}"></path>`;
     inner += `<path class="overlap-line" d="${linePath(data.steps.map(s => s.low_overlap), L, T, width, height)}"></path>`;
     inner += `<path class="target-line" d="${linePath(data.steps.map(s => s.target), L, T, width, height)}"></path>`;
     inner += `<path class="fader-line" d="${linePath(data.steps.map(s => s.fader), L, T, width, height)}"></path>`;
+    inner += `<path class="live-line" id="live-line" d=""></path>`;
     inner += `<line class="playhead" id="playhead" x1="${L}" x2="${L}" y1="${T}" y2="${H - B}"></line>`;
     $("#chart").innerHTML = inner;
+    const title = $("#scope-title");
+    if (title) title.textContent = "Transition / fader vs target";
   }
 
   function renderScore(data) {
@@ -761,11 +894,890 @@
     highlightCrate();
   }
 
+  const clamp01 = (value) => Math.max(0, Math.min(1, value));
+  const clampFilter = (value) => Math.max(-1, Math.min(1, value));
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  function modelAt(t) {
+    const data = state.data;
+    if (!data || !data.steps.length) {
+      return { fader: 0, eqA: [0.5, 0.5, 0.5], eqB: [0.5, 0.5, 0.5],
+               filter: 0, step: null, index: 0 };
+    }
+    const times = data.beat_times;
+    const now = Number.isFinite(t) ? Math.max(0, t) : 0;
+    const firstStep = data.steps[0];
+    const lastStep = data.steps[data.steps.length - 1];
+    const startAt = data.full ? (data.transition_start || 0) : 0;
+    const endAt = data.full ? (data.transition_end || startAt) : 0;
+    if (data.full && now < startAt) {
+      return { fader: 0, eqA: [0.5, 0.5, 0.5], eqB: [0.5, 0.5, 0.5],
+               filter: 0, drumA: firstStep.drum_a ?? 1,
+               drumB: firstStep.drum_b ?? 1, echoA: 0, echoB: 0,
+               step: firstStep, index: 0, phase: "before" };
+    }
+    if (data.full && now >= endAt) {
+      return { fader: 1, eqA: [0.5, 0.5, 0.5], eqB: [0.5, 0.5, 0.5],
+               filter: 0, drumA: lastStep.drum_a ?? 1,
+               drumB: lastStep.drum_b ?? 1, echoA: 0, echoB: 0,
+               step: lastStep, index: data.steps.length - 1,
+               phase: "after" };
+    }
+    const local = data.full ? now - startAt : now;
+    let index = 0;
+    while (index + 1 < times.length && times[index + 1] <= local) index += 1;
+    const first = data.steps[Math.min(index, data.steps.length - 1)];
+    const next = data.steps[Math.min(index + 1, data.steps.length - 1)];
+    const start = times[index] ?? 0;
+    const end = times[index + 1] ?? start;
+    const frac = end > start ? clamp01((local - start) / (end - start)) : 0;
+    const pick = (key, fallback) =>
+      lerp(first[key] ?? fallback, next[key] ?? fallback, frac);
+    return {
+      fader: lerp(first.fader, next.fader, frac),
+      eqA: [0, 1, 2].map(k => lerp(first.eq_a[k], next.eq_a[k], frac)),
+      eqB: [0, 1, 2].map(k => lerp(first.eq_b[k], next.eq_b[k], frac)),
+      filter: lerp(first.filter, next.filter, frac),
+      drumA: pick("drum_a", 1),
+      drumB: pick("drum_b", 1),
+      echoA: pick("echo_a", 0),
+      echoB: pick("echo_b", 0),
+      step: first,
+      index,
+      phase: "transition"
+    };
+  }
+
+  function actualAt(model) {
+    if (state.mode === "manual") {
+      return { fader: state.user.fader, eqA: [...state.user.eqA],
+               eqB: [...state.user.eqB], filter: state.user.filter,
+               drumA: model.drumA, drumB: model.drumB,
+               echoA: model.echoA, echoB: model.echoB,
+               step: model.step, index: model.index };
+    }
+    return {
+      fader: state.takeover.fader ? state.user.fader : model.fader,
+      eqA: model.eqA.map((value, k) =>
+        state.takeover.eqA[k] ? state.user.eqA[k] : value),
+      eqB: model.eqB.map((value, k) =>
+        state.takeover.eqB[k] ? state.user.eqB[k] : value),
+      filter: state.takeover.filter ? state.user.filter : model.filter,
+      drumA: model.drumA,
+      drumB: model.drumB,
+      echoA: model.echoA,
+      echoB: model.echoB,
+      step: model.step,
+      index: model.index
+    };
+  }
+
+  function liveTime() {
+    if (!state.data) return 0;
+    if (state.playing && state.full && state.media) {
+      const a = state.media.a.currentTime || 0;
+      const b = state.media.b.currentTime || 0;
+      return Math.max(0, Math.min(state.data.duration, Math.max(a, b)));
+    }
+    if (state.playing && state.ctx) {
+      return Math.max(0, Math.min(state.data.duration,
+        state.ctx.currentTime - state.startAt));
+    }
+    return Math.max(0, Math.min(state.data.duration, state.offset));
+  }
+
+  function actualNow() {
+    return actualAt(modelAt(liveTime()));
+  }
+
+  function ensureCtx() {
+    if (!state.ctx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      state.ctx = new Ctx();
+    }
+    return state.ctx;
+  }
+
+  function makeChannel(ctx) {
+    const low = ctx.createBiquadFilter();
+    low.type = "lowshelf";
+    low.frequency.value = 250;
+    const mid = ctx.createBiquadFilter();
+    mid.type = "peaking";
+    mid.frequency.value = 1000;
+    mid.Q.value = 0.8;
+    const high = ctx.createBiquadFilter();
+    high.type = "highshelf";
+    high.frequency.value = 3000;
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 20000;
+    lp.Q.value = 0.8;
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = 20;
+    hp.Q.value = 0.8;
+    const gain = ctx.createGain();
+    gain.gain.value = 0;
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.72;
+    const drumGain = ctx.createGain();
+    drumGain.gain.value = 1;
+    const tonalGain = ctx.createGain();
+    tonalGain.gain.value = 1;
+    drumGain.connect(low);
+    tonalGain.connect(low);
+    low.connect(mid);
+    mid.connect(high);
+    high.connect(lp);
+    lp.connect(hp);
+    hp.connect(gain);
+    gain.connect(analyser);
+    return { input: low, low, mid, high, lp, hp, gain, analyser,
+             drumGain, tonalGain, buf: new Float32Array(analyser.fftSize) };
+  }
+
+  function attachEcho(channel, master, delaySeconds) {
+    const ctx = state.ctx;
+    const delay = ctx.createDelay(2.0);
+    delay.delayTime.value = Math.max(0.08, Math.min(1.9, delaySeconds));
+    const feedback = ctx.createGain();
+    feedback.gain.value = 0.34;
+    const wet = ctx.createGain();
+    wet.gain.value = 0;
+    channel.gain.connect(delay);
+    delay.connect(feedback);
+    feedback.connect(delay);
+    delay.connect(wet);
+    wet.connect(master);
+    channel.echoWet = wet;
+  }
+
+  function buildGraph() {
+    const ctx = ensureCtx();
+    const master = ctx.createGain();
+    master.gain.value = 0.9;
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -3;
+    limiter.knee.value = 3;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.002;
+    limiter.release.value = 0.18;
+    master.connect(limiter);
+    limiter.connect(ctx.destination);
+    const a = makeChannel(ctx);
+    const b = makeChannel(ctx);
+    a.analyser.connect(master);
+    b.analyser.connect(master);
+    const beat = state.data && state.data.beat_seconds
+      ? Number(state.data.beat_seconds) : 0.5;
+    attachEcho(a, master, beat * 0.75);
+    attachEcho(b, master, beat * 0.75);
+    state.graph = { master, limiter, a, b };
+  }
+
+  function mediaElements() {
+    if (!state.media) return [];
+    return [state.media.a, state.media.b,
+            state.media.aDrums, state.media.bDrums].filter(Boolean);
+  }
+
+  function setMediaTime(value) {
+    for (const element of mediaElements()) {
+      try { element.currentTime = value; } catch (error) { /* not ready */ }
+    }
+  }
+
+  function stopSources() {
+    if (state.sources) {
+      for (const source of [state.sources.a, state.sources.b]) {
+        try { source.stop(); } catch (error) { /* already stopped */ }
+        try { source.disconnect(); } catch (error) { /* already gone */ }
+      }
+    }
+    state.sources = null;
+  }
+
+  function stopLive() {
+    state.playing = false;
+    cancelAnimationFrame(state.raf);
+    stopSources();
+    for (const element of mediaElements()) {
+      try { element.pause(); } catch (error) { /* already stopped */ }
+      try { element.removeAttribute("src"); } catch (error) { /* no src */ }
+      try { element.load(); } catch (error) { /* detached */ }
+    }
+    state.media = null;
+    if (state.mediaSources) {
+      for (const node of Object.values(state.mediaSources)) {
+        try { node.disconnect(); } catch (error) { /* already gone */ }
+      }
+    }
+    state.mediaSources = null;
+    state.full = false;
+    state.bGain = 1;
+    resetEchoGate();
+    if (state.graph) {
+      const graph = state.graph;
+      const nodes = [graph.master, graph.limiter,
+        graph.a.low, graph.a.mid, graph.a.high, graph.a.lp, graph.a.hp,
+        graph.a.gain, graph.a.analyser,
+        graph.b.low, graph.b.mid, graph.b.high, graph.b.lp, graph.b.hp,
+        graph.b.gain, graph.b.analyser];
+      for (const node of nodes) {
+        try { node.disconnect(); } catch (error) { /* already gone */ }
+      }
+      state.graph = null;
+    }
+    state.live = false;
+    state.ready = false;
+    state.buffers = null;
+    state.offset = 0;
+  }
+
+  function resetEchoGate() {
+    state.echoGate = { a: { active: false, start: 0 },
+                       b: { active: false, start: 0 } };
+  }
+
+  function gateEcho(value, key, now) {
+    const gate = state.echoGate[key];
+    const beat = state.data && state.data.beat_seconds
+      ? Number(state.data.beat_seconds) : 0.5;
+    if (value > 0.12) {
+      if (!gate.active) {
+        gate.active = true;
+        gate.start = now;
+      }
+      return now - gate.start > beat * 4 ? 0 : value;
+    }
+    gate.active = false;
+    return 0;
+  }
+
+  function applyAudio(act) {
+    const graph = state.graph;
+    if (!graph || !state.ctx) return;
+    const now = state.ctx.currentTime;
+    const set = (param, value) => {
+      if (Math.abs(param.value - value) > 1e-4) {
+        param.setTargetAtTime(value, now, 0.012);
+      }
+    };
+    const db = (value) => {
+      const action = clamp01(value);
+      return action <= 0.5
+        ? (action - 0.5) * 2 * -18
+        : (action - 0.5) * 2 * 6;
+    };
+    const bandsA = [graph.a.low, graph.a.mid, graph.a.high];
+    const bandsB = [graph.b.low, graph.b.mid, graph.b.high];
+    for (let k = 0; k < 3; k += 1) {
+      set(bandsA[k].gain, db(act.eqA[k]));
+      set(bandsB[k].gain, db(act.eqB[k]));
+    }
+    const filter = clampFilter(act.filter);
+    set(graph.a.lp.frequency, 20000);
+    set(graph.a.hp.frequency, 20);
+    set(graph.b.lp.frequency,
+      filter < 0 ? 20000 * Math.pow(200 / 20000, -filter) : 20000);
+    set(graph.b.hp.frequency,
+      filter > 0 ? 20 * Math.pow(8000 / 20, filter) : 20);
+    set(graph.a.gain.gain, Math.cos(act.fader * Math.PI / 2));
+    set(graph.b.gain.gain,
+      Math.sin(act.fader * Math.PI / 2) * state.bGain);
+    set(graph.a.drumGain.gain, act.drumA ?? 1);
+    set(graph.b.drumGain.gain, act.drumB ?? 1);
+    set(graph.a.tonalGain.gain, 1);
+    set(graph.b.tonalGain.gain, 1);
+    const sessionNow = liveTime();
+    set(graph.a.echoWet.gain, gateEcho(act.echoA ?? 0, "a", sessionNow) * 0.65);
+    set(graph.b.echoWet.gain, gateEcho(act.echoB ?? 0, "b", sessionNow) * 0.65);
+  }
+
+  function readVu(channel) {
+    if (!channel) return 0;
+    channel.analyser.getFloatTimeDomainData(channel.buf);
+    let sum = 0;
+    for (let i = 0; i < channel.buf.length; i += 1) {
+      sum += channel.buf[i] * channel.buf[i];
+    }
+    const rms = Math.sqrt(sum / channel.buf.length);
+    const db = 20 * Math.log10(rms + 1e-8);
+    return clamp01((db + 54) / 54);
+  }
+
+  function takenControls() {
+    const names = [];
+    if (state.takeover.fader) names.push("fader");
+    ["low", "mid", "high"].forEach((name, k) => {
+      if (state.takeover.eqA[k]) names.push(`A ${name}`);
+      if (state.takeover.eqB[k]) names.push(`B ${name}`);
+    });
+    if (state.takeover.filter) names.push("filter");
+    return names;
+  }
+
+  function updateLiveStatus() {
+    const status = $("#live-status");
+    if (!status) return;
+    if (!state.data || state.mode === "auto") {
+      status.innerHTML = "<b>Auto</b> / model driving";
+    } else if (state.mode === "manual") {
+      status.innerHTML = "<b>Manual</b> / you driving";
+    } else {
+      const taken = takenControls();
+      status.innerHTML = taken.length
+        ? `<b>Co-pilot</b> / you: ${taken.join(", ")}`
+        : "<b>Co-pilot</b> / model driving";
+    }
+    $("#reengage").disabled = state.mode === "auto";
+    $$("#live-mode button").forEach(button =>
+      button.classList.toggle("active", button.dataset.mode === state.mode));
+  }
+
+  function refreshLive() {
+    if (!state.data) return;
+    const now = liveTime();
+    const model = modelAt(now);
+    const act = actualAt(model);
+    state.model = model;
+    state.actual = act;
+    applyAudio(act);
+    updateLiveUI(model, act, now);
+    updateLiveStatus();
+  }
+
+  function setUserFader(value) {
+    if (!state.data) return;
+    if (state.mode === "auto") state.mode = "copilot";
+    state.takeover.fader = true;
+    state.user.fader = clamp01(value);
+    refreshLive();
+  }
+
+  function setUserEq(side, index, value) {
+    if (!state.data) return;
+    if (state.mode === "auto") state.mode = "copilot";
+    const key = side === "a" ? "eqA" : "eqB";
+    state.takeover[key][index] = true;
+    state.user[key][index] = clamp01(value);
+    refreshLive();
+  }
+
+  function setUserFilter(value) {
+    if (!state.data) return;
+    if (state.mode === "auto") state.mode = "copilot";
+    state.takeover.filter = true;
+    state.user.filter = clampFilter(value);
+    refreshLive();
+  }
+
+  function setMode(mode) {
+    if (!["auto", "copilot", "manual"].includes(mode)) return;
+    if (state.data) {
+      const act = actualNow();
+      state.user = { fader: act.fader, eqA: [...act.eqA],
+                     eqB: [...act.eqB], filter: act.filter };
+    }
+    if (mode === "manual") {
+      state.takeover = { fader: true, eqA: [true, true, true],
+                         eqB: [true, true, true], filter: true };
+    } else {
+      state.takeover = { fader: false, eqA: [false, false, false],
+                         eqB: [false, false, false], filter: false };
+    }
+    state.mode = mode;
+    refreshLive();
+    setStatus(`${mode === "auto" ? "Auto" : mode === "manual" ? "Manual" : "Co-pilot"}`
+      + ` / ${state.playing ? "playing" : "ready"}`, "");
+  }
+
+  function updateLiveUI(model, act, t) {
+    const duration = state.data ? state.data.duration : 0;
+    $("#cross-cap").style.left = `${clamp01(act.fader) * 100}%`;
+    $("#cross-ghost").style.left = `${clamp01(model.fader) * 100}%`;
+    const knobsA = ["#eq-a0", "#eq-a1", "#eq-a2"];
+    const knobsB = ["#eq-b0", "#eq-b1", "#eq-b2"];
+    for (let k = 0; k < 3; k += 1) {
+      setKnob(knobsA[k], act.eqA[k]);
+      setGhost(knobsA[k], model.eqA[k]);
+      setKnob(knobsB[k], act.eqB[k]);
+      setGhost(knobsB[k], model.eqB[k]);
+    }
+    setKnob("#filter-knob", (act.filter + 1) / 2);
+    setGhost("#filter-knob", (model.filter + 1) / 2);
+    $("#filter-val").textContent = act.filter < -0.03
+      ? `Low-pass ${Math.round(-act.filter * 100)}%`
+      : act.filter > 0.03
+        ? `High-pass ${Math.round(act.filter * 100)}%`
+        : "Off";
+    const gainA = Math.cos(act.fader * Math.PI / 2);
+    const gainB = Math.sin(act.fader * Math.PI / 2);
+    if (state.graph) {
+      setVu("#vu-a", readVu(state.graph.a), 1);
+      setVu("#vu-b", readVu(state.graph.b), 1);
+    }
+    if (model.step) {
+      $("#a-live").textContent =
+        `${model.step.section_a} / ${Math.round(gainA * 100)}%`;
+      $("#b-live").textContent =
+        `${model.step.section_b} / ${Math.round(gainB * 100)}%`;
+    }
+    $("#deck-a").classList.toggle("active", gainA > 0.5);
+    $("#deck-b").classList.toggle("active", gainB > 0.5);
+    const playhead = $("#playhead");
+    if (playhead && duration > 0) {
+      const W = 1000, L = 52, R = 16;
+      const px = L + (Math.min(t, duration) / duration) * (W - L - R);
+      playhead.setAttribute("x1", px);
+      playhead.setAttribute("x2", px);
+    }
+    $("#time").textContent = `${fmt(t)} / ${fmt(duration)}`;
+    $("#seek").value = duration > 0
+      ? Math.round(clamp01(t / duration) * 1000) : 0;
+    if (state.lastTrace < 0 || t - state.lastTrace >= 0.08) {
+      state.liveTrace.push({ t, fader: act.fader });
+      state.lastTrace = t;
+      if (state.liveTrace.length > 6000) {
+        state.liveTrace.splice(0, state.liveTrace.length - 6000);
+      }
+      drawLiveTrace();
+    }
+  }
+
+  function drawLiveTrace() {
+    const path = $("#live-line");
+    if (!path || !state.data) return;
+    const duration = state.data.duration || 1;
+    const W = 1000, H = 170, L = 52, R = 16, T = 12, B = 22;
+    const width = W - L - R;
+    const height = H - T - B;
+    let d = "";
+    for (const point of state.liveTrace) {
+      const x = L + (Math.min(point.t, duration) / duration) * width;
+      const y = T + (1 - clamp01(point.fader)) * height;
+      d += `${d ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`;
+    }
+    path.setAttribute("d", d);
+  }
+
+  function waitForMedia(element) {
+    return new Promise((resolve, reject) => {
+      if (element.readyState >= 1) {
+        resolve();
+        return;
+      }
+      element.addEventListener("loadedmetadata", resolve, { once: true });
+      element.addEventListener("error", () => reject(new Error("audio load failed")),
+        { once: true });
+    });
+  }
+
+  async function loadFullSession(data) {
+    const ctx = ensureCtx();
+    const hasStems = Boolean(
+      data.deck_a_drums_url && data.deck_a_tonal_url &&
+      data.deck_b_drums_url && data.deck_b_tonal_url);
+    const makeMedia = (url) => {
+      const element = new Audio(url);
+      element.preload = "auto";
+      element.playsInline = true;
+      return element;
+    };
+    const mediaA = makeMedia(hasStems ? data.deck_a_tonal_url : data.deck_a_url);
+    const mediaB = makeMedia(hasStems ? data.deck_b_tonal_url : data.deck_b_url);
+    const aDrums = hasStems ? makeMedia(data.deck_a_drums_url) : null;
+    const bDrums = hasStems ? makeMedia(data.deck_b_drums_url) : null;
+    state.media = { a: mediaA, b: mediaB, aDrums, bDrums };
+    state.full = true;
+    state.live = true;
+    state.ready = false;
+    state.playing = false;
+    state.offset = 0;
+    state.bGain = Number(data.deck_b_gain) || 1;
+    state.liveTrace = [];
+    state.lastTrace = -1;
+    buildGraph();
+    state.mediaSources = {
+      a: ctx.createMediaElementSource(mediaA),
+      b: ctx.createMediaElementSource(mediaB)
+    };
+    if (hasStems) {
+      state.mediaSources.aDrums = ctx.createMediaElementSource(aDrums);
+      state.mediaSources.bDrums = ctx.createMediaElementSource(bDrums);
+      state.mediaSources.aDrums.connect(state.graph.a.drumGain);
+      state.mediaSources.bDrums.connect(state.graph.b.drumGain);
+      state.mediaSources.a.connect(state.graph.a.tonalGain);
+      state.mediaSources.b.connect(state.graph.b.tonalGain);
+    } else {
+      state.mediaSources.a.connect(state.graph.a.input);
+      state.mediaSources.b.connect(state.graph.b.input);
+    }
+    const waits = [waitForMedia(mediaA), waitForMedia(mediaB)];
+    if (aDrums) waits.push(waitForMedia(aDrums));
+    if (bDrums) waits.push(waitForMedia(bDrums));
+    await Promise.all(waits);
+    state.ready = true;
+    setMediaTime(0);
+    const model = modelAt(0);
+    const act = actualAt(model);
+    state.model = model;
+    state.actual = act;
+    applyAudio(act);
+    updateLiveUI(model, act, 0);
+    updateLiveStatus();
+    $("#play").disabled = false;
+    $("#seek").disabled = false;
+    $("#play").textContent = "Play";
+    setStatus(`Live full songs / ${fmt(data.duration)} / press Play`, "ok");
+  }
+
+  async function loadLiveSession(data) {
+    stopLive();
+    if (data.full) {
+      await loadFullSession(data);
+      return;
+    }
+    state.bGain = 1;
+    const ctx = ensureCtx();
+    const fetchDeck = async (url, name) => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`${name} deck: HTTP ${response.status}`);
+      return ctx.decodeAudioData(await response.arrayBuffer());
+    };
+    const [bufferA, bufferB] = await Promise.all([
+      fetchDeck(data.deck_a_url, "A"),
+      fetchDeck(data.deck_b_url, "B")
+    ]);
+    state.buffers = { a: bufferA, b: bufferB };
+    state.live = true;
+    state.ready = true;
+    state.playing = false;
+    state.offset = 0;
+    state.liveTrace = [];
+    state.lastTrace = -1;
+    buildGraph();
+    const model = modelAt(0);
+    const act = actualAt(model);
+    state.model = model;
+    state.actual = act;
+    applyAudio(act);
+    updateLiveUI(model, act, 0);
+    updateLiveStatus();
+    $("#play").disabled = false;
+    $("#seek").disabled = false;
+    $("#play").textContent = "Play";
+    setStatus(`Live / ${data.reward.toFixed(2)} plan / press Play`, "ok");
+  }
+
+  async function playLive() {
+    if (!state.ready || !state.graph) return;
+    const ctx = ensureCtx();
+    if (ctx.state === "suspended") await ctx.resume();
+    if (state.offset >= state.data.duration - 0.06) {
+      state.offset = 0;
+      state.liveTrace = [];
+      state.lastTrace = -1;
+    }
+    if (state.offset < 0.1) resetEchoGate();
+    if (state.full && state.media) {
+      setMediaTime(state.offset);
+      try {
+        await Promise.all(mediaElements().map(element => element.play()));
+      } catch (error) {
+        setStatus("Full-song playback failed: " + error.message, "err");
+        return;
+      }
+      state.playing = true;
+      $("#play").textContent = "Pause";
+      $("#deck-a").classList.add("playing");
+      $("#deck-b").classList.add("playing");
+      setStatus(`Live full songs / ${fmt(state.data.duration)} / playing`, "ok");
+      cancelAnimationFrame(state.raf);
+      tickLive();
+      return;
+    }
+    if (!state.buffers) return;
+    stopSources();
+    const at = ctx.currentTime + 0.06;
+    const sourceA = ctx.createBufferSource();
+    const sourceB = ctx.createBufferSource();
+    sourceA.buffer = state.buffers.a;
+    sourceB.buffer = state.buffers.b;
+    sourceA.connect(state.graph.a.input);
+    sourceB.connect(state.graph.b.input);
+    sourceA.start(at, state.offset);
+    sourceB.start(at, state.offset);
+    state.sources = { a: sourceA, b: sourceB };
+    state.startAt = at - state.offset;
+    state.playing = true;
+    $("#play").textContent = "Pause";
+    $("#deck-a").classList.add("playing");
+    $("#deck-b").classList.add("playing");
+    setStatus(`Live / ${state.data.reward.toFixed(2)} plan / playing`, "ok");
+    cancelAnimationFrame(state.raf);
+    tickLive();
+  }
+
+  function pauseLive(atEnd = false) {
+    if (!state.playing) return;
+    const now = state.full
+      ? liveTime()
+      : Math.max(0, Math.min(state.data.duration,
+        state.ctx.currentTime - state.startAt));
+    state.playing = false;
+    state.offset = atEnd ? 0 : now;
+    cancelAnimationFrame(state.raf);
+    if (state.full && state.media) {
+      for (const element of mediaElements()) {
+        element.pause();
+      }
+      if (atEnd) setMediaTime(0);
+    } else {
+      stopSources();
+    }
+    $("#play").textContent = "Play";
+    $("#deck-a").classList.remove("playing");
+    $("#deck-b").classList.remove("playing");
+    if (atEnd) {
+      state.liveTrace = [];
+      state.lastTrace = -1;
+      const model = modelAt(0);
+      const act = actualAt(model);
+      applyAudio(act);
+      updateLiveUI(model, act, 0);
+    }
+    const label = state.full
+      ? "Live full songs"
+      : `Live / ${state.data.reward.toFixed(2)} plan`;
+    setStatus(`${label} / paused`, "");
+  }
+
+  function seekPreview(fraction) {
+    if (!state.ready || !state.data) return;
+    const t = clamp01(fraction) * state.data.duration;
+    state.offset = t;
+    if (state.full && state.media) setMediaTime(t);
+    const model = modelAt(t);
+    const act = actualAt(model);
+    applyAudio(act);
+    updateLiveUI(model, act, t);
+  }
+
+  function seekLive(fraction) {
+    if (!state.ready || !state.data) return;
+    const wasPlaying = state.playing;
+    if (wasPlaying) pauseLive();
+    const t = clamp01(fraction) * state.data.duration;
+    state.offset = t;
+    resetEchoGate();
+    if (state.full && state.media) setMediaTime(t);
+    const model = modelAt(t);
+    const act = actualAt(model);
+    state.liveTrace = [{ t, fader: act.fader }];
+    state.lastTrace = t;
+    applyAudio(act);
+    updateLiveUI(model, act, t);
+    drawLiveTrace();
+    if (wasPlaying) playLive();
+  }
+
+  function restartLive() {
+    if (!state.ready) return;
+    const wasPlaying = state.playing;
+    if (wasPlaying) pauseLive();
+    state.offset = 0;
+    resetEchoGate();
+    if (state.full && state.media) setMediaTime(0);
+    state.liveTrace = [];
+    state.lastTrace = -1;
+    const model = modelAt(0);
+    const act = actualAt(model);
+    applyAudio(act);
+    updateLiveUI(model, act, 0);
+    if (wasPlaying) playLive();
+    else setStatus(state.full ? "Live full songs / ready at 0:00"
+                              : "Live / ready at 0:00", "");
+  }
+
+  function tickLive() {
+    if (!state.playing || !state.ctx || !state.data) return;
+    const now = liveTime();
+    if (now >= state.data.duration - 0.01) {
+      pauseLive(true);
+      return;
+    }
+    const model = modelAt(now);
+    const act = actualAt(model);
+    state.model = model;
+    state.actual = act;
+    applyAudio(act);
+    updateLiveUI(model, act, now);
+    state.raf = requestAnimationFrame(tickLive);
+  }
+
+  async function connectMidi() {
+    if (!navigator.requestMIDIAccess) {
+      $("#midi").textContent = "MIDI off";
+      $("#midi").title = "WebMIDI is not available in this browser";
+      setStatus("MIDI unavailable / keyboard still works", "");
+      return;
+    }
+    try {
+      const access = await navigator.requestMIDIAccess();
+      state.midi = access;
+      const attach = () => {
+        const names = [];
+        access.inputs.forEach(input => {
+          input.onmidimessage = handleMidi;
+          names.push(input.name || "controller");
+        });
+        $("#midi").textContent = "MIDI on";
+        $("#midi").title = names.length ? names.join(", ") : "No MIDI inputs";
+        setStatus(names.length
+          ? `MIDI / ${names.join(", ")}`
+          : "MIDI connected / no inputs", "");
+      };
+      access.onstatechange = attach;
+      attach();
+    } catch (error) {
+      $("#midi").textContent = "MIDI off";
+      $("#midi").title = error.message;
+      setStatus("MIDI unavailable / keyboard still works", "");
+    }
+  }
+
+  function handleMidi(event) {
+    const [status, data1, data2] = event.data;
+    if ((status & 0xf0) !== 0xb0) return;
+    const value = data2 / 127;
+    if (data1 === 1) setUserFader(value);
+    else if (data1 >= 2 && data1 <= 4) setUserEq("a", data1 - 2, value);
+    else if (data1 >= 5 && data1 <= 7) setUserEq("b", data1 - 5, value);
+    else if (data1 === 8) setUserFilter(value * 2 - 1);
+  }
+
+  function bindKnob(id, read, write, min, max) {
+    const knob = $(id);
+    const wrap = knob ? knob.parentElement : null;
+    if (!wrap) return;
+    let startY = 0;
+    let startValue = 0;
+    let active = false;
+    const span = max - min;
+    const commit = (value) => write(Math.max(min, Math.min(max, value)));
+    wrap.addEventListener("pointerdown", event => {
+      active = true;
+      startY = event.clientY;
+      startValue = read();
+      commit(startValue);
+      if (wrap.setPointerCapture) wrap.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    });
+    wrap.addEventListener("pointermove", event => {
+      if (!active) return;
+      const delta = (startY - event.clientY) * 0.006 * span;
+      commit(startValue + delta);
+    });
+    const stop = () => { active = false; };
+    wrap.addEventListener("pointerup", stop);
+    wrap.addEventListener("pointercancel", stop);
+    wrap.addEventListener("dblclick", () => setMode("auto"));
+    wrap.addEventListener("wheel", event => {
+      event.preventDefault();
+      const step = event.deltaY < 0 ? 0.04 * span : -0.04 * span;
+      commit(read() + step);
+    }, { passive: false });
+  }
+
+  function bindLiveControls() {
+    const cross = $(".cross");
+    if (cross) {
+      const move = event => {
+        const rect = cross.getBoundingClientRect();
+        setUserFader((event.clientX - rect.left) / rect.width);
+      };
+      cross.addEventListener("pointerdown", event => {
+        state.drag = "fader";
+        if (cross.setPointerCapture) cross.setPointerCapture(event.pointerId);
+        move(event);
+        event.preventDefault();
+      });
+      cross.addEventListener("pointermove", event => {
+        if (state.drag === "fader") move(event);
+      });
+      const stop = () => { state.drag = null; };
+      cross.addEventListener("pointerup", stop);
+      cross.addEventListener("pointercancel", stop);
+    }
+    bindKnob("#eq-a0", () => actualNow().eqA[0],
+      value => setUserEq("a", 0, value), 0, 1);
+    bindKnob("#eq-a1", () => actualNow().eqA[1],
+      value => setUserEq("a", 1, value), 0, 1);
+    bindKnob("#eq-a2", () => actualNow().eqA[2],
+      value => setUserEq("a", 2, value), 0, 1);
+    bindKnob("#eq-b0", () => actualNow().eqB[0],
+      value => setUserEq("b", 0, value), 0, 1);
+    bindKnob("#eq-b1", () => actualNow().eqB[1],
+      value => setUserEq("b", 1, value), 0, 1);
+    bindKnob("#eq-b2", () => actualNow().eqB[2],
+      value => setUserEq("b", 2, value), 0, 1);
+    bindKnob("#filter-knob", () => actualNow().filter,
+      setUserFilter, -1, 1);
+    window.addEventListener("keydown", event => {
+      if (["INPUT", "SELECT", "TEXTAREA"].includes(event.target.tagName)) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const key = event.key.toLowerCase();
+      if (key === " ") {
+        event.preventDefault();
+        $("#play").click();
+        return;
+      }
+      if (key === "0") {
+        event.preventDefault();
+        restartLive();
+        return;
+      }
+      if (!state.ready) return;
+      const now = actualNow();
+      const step = 0.04;
+      const actions = {
+        a: () => setUserFader(now.fader - step),
+        d: () => setUserFader(now.fader + step),
+        q: () => setUserEq("a", 0, now.eqA[0] - step),
+        w: () => setUserEq("a", 0, now.eqA[0] + step),
+        e: () => setUserEq("a", 1, now.eqA[1] - step),
+        r: () => setUserEq("a", 1, now.eqA[1] + step),
+        t: () => setUserEq("a", 2, now.eqA[2] - step),
+        y: () => setUserEq("a", 2, now.eqA[2] + step),
+        u: () => setUserEq("b", 0, now.eqB[0] - step),
+        i: () => setUserEq("b", 0, now.eqB[0] + step),
+        o: () => setUserEq("b", 1, now.eqB[1] - step),
+        p: () => setUserEq("b", 1, now.eqB[1] + step),
+        "[": () => setUserEq("b", 2, now.eqB[2] - step),
+        "]": () => setUserEq("b", 2, now.eqB[2] + step),
+        f: () => setUserFilter(now.filter - step * 2),
+        g: () => setUserFilter(now.filter + step * 2),
+        h: () => setUserFilter(0)
+      };
+      if (actions[key]) {
+        event.preventDefault();
+        actions[key]();
+      }
+    });
+  }
+
   function applyStep(step, t) {
     $("#cross-cap").style.left = `${step.fader * 100}%`;
+    $("#cross-ghost").style.left = `${step.fader * 100}%`;
     setKnob("#eq-a0", step.eq_a[0]); setKnob("#eq-a1", step.eq_a[1]); setKnob("#eq-a2", step.eq_a[2]);
     setKnob("#eq-b0", step.eq_b[0]); setKnob("#eq-b1", step.eq_b[1]); setKnob("#eq-b2", step.eq_b[2]);
     setKnob("#filter-knob", (step.filter + 1) / 2);
+    setGhost("#eq-a0", step.eq_a[0]); setGhost("#eq-a1", step.eq_a[1]); setGhost("#eq-a2", step.eq_a[2]);
+    setGhost("#eq-b0", step.eq_b[0]); setGhost("#eq-b1", step.eq_b[1]); setGhost("#eq-b2", step.eq_b[2]);
+    setGhost("#filter-knob", (step.filter + 1) / 2);
     $("#filter-val").textContent = step.filter < -0.03
       ? `Low-pass ${Math.round(-step.filter * 100)}%`
       : step.filter > 0.03 ? `High-pass ${Math.round(step.filter * 100)}%` : "Off";
@@ -810,14 +1822,15 @@
       return;
     }
     const best = $("#best-cues").checked;
-    const body = { track_a: a, track_b: b, policy: state.policy, best_cues: best, seed: 0 };
+    const body = { track_a: a, track_b: b, policy: state.policy,
+                   best_cues: best, seed: 0, live: true, full: false };
     if (!best) {
       body.cue_a = Number($("#cue-a").value);
       body.cue_b = Number($("#cue-b").value);
     }
     $("#render").disabled = true;
     $("#play").disabled = true;
-    setStatus("Rendering / analyzing and stretching the two decks", "");
+    setStatus("Rendering / preparing full songs and the transition", "");
     try {
       const response = await fetch("/api/render", {
         method: "POST",
@@ -829,18 +1842,43 @@
       state.data = data;
       state.maxA = Math.max(...data.steps.map(s => s.mix_a.reduce((x, y) => x + y, 0)), 1e-6);
       state.maxB = Math.max(...data.steps.map(s => s.mix_b.reduce((x, y) => x + y, 0)), 1e-6);
-      audio.src = data.audio_url;
-      audio.load();
+      state.mode = "auto";
+      state.takeover = { fader: false, eqA: [false, false, false],
+                         eqB: [false, false, false], filter: false };
+      state.playing = false;
+      state.offset = 0;
       setDeckFromData("a", data.track_a, data.cue_a);
       setDeckFromData("b", data.track_b, data.cue_b);
       drawDeckWaves(data);
       buildChart(data);
       renderScore(data);
-      applyAt(0);
-      $("#play").disabled = false;
-      $("#seek").disabled = false;
-      $("#seek").value = 0;
-      setStatus(`Ready / ${data.reward.toFixed(2)} / ${fmt(data.duration)} / ${data.policy}`, "ok");
+      updateLiveStatus();
+      if (data.deck_a_url && data.deck_b_url) {
+        try {
+          await loadLiveSession(data);
+        } catch (liveError) {
+          state.live = false;
+          state.ready = false;
+          if (!data.audio_url) throw liveError;
+          audio.src = data.audio_url;
+          audio.load();
+          applyAt(0);
+          $("#play").disabled = false;
+          $("#seek").disabled = false;
+          setStatus("Live decks failed / studio mix ready: "
+            + liveError.message, "err");
+        }
+      } else if (data.audio_url) {
+        audio.src = data.audio_url;
+        audio.load();
+        applyAt(0);
+        $("#play").disabled = false;
+        $("#seek").disabled = false;
+        $("#seek").value = 0;
+        setStatus(`Ready / ${data.reward.toFixed(2)} / ${fmt(data.duration)} / ${data.policy}`, "ok");
+      } else {
+        throw new Error("no playable audio returned");
+      }
     } catch (error) {
       setStatus("Render failed: " + error.message, "err");
     } finally {
@@ -961,6 +1999,10 @@
       if (event.key === "Enter") $("#lib-load").click();
     });
     $("#play").addEventListener("click", () => {
+      if (state.live && state.ready) {
+        if (state.playing) pauseLive(); else playLive();
+        return;
+      }
       if (!state.data) return;
       if (audio.paused) {
         audio.play().catch(error => setStatus("Playback failed: " + error.message, "err"));
@@ -969,6 +2011,7 @@
       }
     });
     audio.addEventListener("play", () => {
+      if (state.live) return;
       $("#play").textContent = "Pause";
       $("#deck-a").classList.add("playing");
       $("#deck-b").classList.add("playing");
@@ -976,22 +2019,39 @@
       tick();
     });
     audio.addEventListener("pause", () => {
+      if (state.live) return;
       $("#play").textContent = "Play";
       $("#deck-a").classList.remove("playing");
       $("#deck-b").classList.remove("playing");
       cancelAnimationFrame(state.raf);
     });
     audio.addEventListener("ended", () => {
+      if (state.live) return;
       $("#play").textContent = "Play";
       $("#seek").value = 1000;
     });
     $("#seek").addEventListener("input", () => {
       if (!state.data) return;
+      if (state.live && state.ready) {
+        if (state.playing && !state.wasPlayingSeek) {
+          state.wasPlayingSeek = true;
+          pauseLive();
+        }
+        seekPreview(Number($("#seek").value) / 1000);
+        return;
+      }
       const duration = Number.isFinite(audio.duration) && audio.duration > 0
         ? audio.duration : state.data.duration;
       const t = (Number($("#seek").value) / 1000) * duration;
       audio.currentTime = t;
       applyAt((t / duration) * state.data.duration);
+    });
+    $("#seek").addEventListener("change", () => {
+      if (!state.data || !state.live || !state.ready) return;
+      const wasPlaying = state.wasPlayingSeek;
+      state.wasPlayingSeek = false;
+      seekLive(Number($("#seek").value) / 1000);
+      if (wasPlaying) playLive();
     });
     $("#best-cues").addEventListener("change", event => {
       $("#cue-a").disabled = event.target.checked;
@@ -1030,6 +2090,13 @@
       $(id).innerHTML = Array.from({ length: 12 }, (_, i) =>
         `<i class="${i >= 10 ? "hot" : i >= 7 ? "warn" : ""}"></i>`).join("");
     }
+    for (const button of $$("#live-mode button")) {
+      button.addEventListener("click", () => setMode(button.dataset.mode));
+    }
+    $("#reengage").addEventListener("click", () => setMode("auto"));
+    $("#midi").addEventListener("click", connectMidi);
+    bindLiveControls();
+    updateLiveStatus();
   }
 
   async function boot() {

@@ -1,6 +1,6 @@
 # MLOps registry
 
-Generated 2026-10-26T02:00:28+00:00.
+Generated 2026-10-26T08:07:22+00:00.
 
 Large model and checkpoint zips stay in `models/` and `checkpoints*/`; the hash identifies them. Small records are copied under `records/`.
 
@@ -23,6 +23,12 @@ Large model and checkpoint zips stay in `models/` and `checkpoints*/`; the hash 
 | model | ppo_v2_bc | 41 | 0 |  | 51df5bf99ad76456 |
 | model | ppo_v2_bc_quiet | 41 | 0 |  | 39933f795de578f6 |
 | model | ppo_v2_final | 41 | 1000448 |  | f55ee070cef22466 |
+| model | ppo_v3_600k_oldecho | 48 | 600000 |  | 23ca99e52e772295 |
+| model | ppo_v3_700k_oldecho | 48 | 700000 |  | 3f4eb60bce21d2b7 |
+| model | ppo_v3_bc | 48 | 0 |  | 2a1fa1e1b4d83f6d |
+| model | ppo_v3_final | 48 | 1001056 | 17.62557729842656 | c500ee8bba3024e9 |
+| model | ppo_v4_bc | 14 | 0 |  | e1d25cd2cb32049d |
+| model | ppo_v4_final | 14 | 1001472 | 75.69656082987785 | e499b26c4aa5ee87 |
 | checkpoint | checkpoints_1m/ppo_moodmix_1000240_steps.zip | 64 | 1000240 |  | 814bc738ac79d875 |
 | checkpoint | checkpoints_1m/ppo_moodmix_150352_steps.zip | 64 | 150352 |  | fe2998a31ae964aa |
 | checkpoint | checkpoints_1m/ppo_moodmix_200352_steps.zip | 64 | 200352 |  | e491f86f5d538539 |
@@ -71,7 +77,29 @@ Large model and checkpoint zips stay in `models/` and `checkpoints*/`; the hash 
 | checkpoint | checkpoints_v2/ppo_v1_700000_steps.zip | 41 | 700000 |  | f96456a94c97fe32 |
 | checkpoint | checkpoints_v2/ppo_v1_800000_steps.zip | 41 | 800000 |  | b7e7802cd0b2178a |
 | checkpoint | checkpoints_v2/ppo_v1_900000_steps.zip | 41 | 900000 |  | 741107b32a4a6839 |
+| checkpoint | checkpoints_v3/ppo_v3_100000_steps.zip | 48 | 100000 |  | 75b062fd54eec8c5 |
+| checkpoint | checkpoints_v3/ppo_v3_200000_steps.zip | 48 | 200000 |  | a655dfa61cdf6a27 |
+| checkpoint | checkpoints_v3/ppo_v3_300000_steps.zip | 48 | 300000 |  | 7859f61bdcdd7883 |
+| checkpoint | checkpoints_v3/ppo_v3_400000_steps.zip | 48 | 400000 |  | 5ec24d465b50539a |
+| checkpoint | checkpoints_v3/ppo_v3_500000_steps.zip | 48 | 500000 |  | 69065c792f5af1f6 |
+| checkpoint | checkpoints_v3/ppo_v3_600000_steps.zip | 48 | 600000 |  | 23ca99e52e772295 |
+| checkpoint | checkpoints_v3/ppo_v3_700000_steps.zip | 48 | 700000 |  | 3f4eb60bce21d2b7 |
+| checkpoint | checkpoints_v3_ft/ppo_v3_1000000_steps.zip | 48 | 1000000 |  | 2764329874892189 |
+| checkpoint | checkpoints_v3_ft/ppo_v3_800000_steps.zip | 48 | 800000 |  | fed59d0307a227be |
+| checkpoint | checkpoints_v3_ft/ppo_v3_900000_steps.zip | 48 | 900000 |  | 8d497da81b6e7157 |
+| checkpoint | checkpoints_v4/ppo_v4_1000000_steps.zip | 14 | 1000000 |  | 0e3d8ab63c25bde0 |
+| checkpoint | checkpoints_v4/ppo_v4_100000_steps.zip | 14 | 100000 |  | 8eb516220f7ab3f1 |
+| checkpoint | checkpoints_v4/ppo_v4_200000_steps.zip | 14 | 200000 |  | 4667b93c0bf44fac |
+| checkpoint | checkpoints_v4/ppo_v4_300000_steps.zip | 14 | 300000 |  | bf0b40c9cb915632 |
+| checkpoint | checkpoints_v4/ppo_v4_400000_steps.zip | 14 | 400000 |  | 4a3cf615f24fbfd1 |
+| checkpoint | checkpoints_v4/ppo_v4_500000_steps.zip | 14 | 500000 |  | 394fdef292c6e262 |
+| checkpoint | checkpoints_v4/ppo_v4_600000_steps.zip | 14 | 600000 |  | 97e951fc34cc42ce |
+| checkpoint | checkpoints_v4/ppo_v4_700000_steps.zip | 14 | 700000 |  | 4e581364513889fd |
+| checkpoint | checkpoints_v4/ppo_v4_800000_steps.zip | 14 | 800000 |  | 14c609b3a4f4e13c |
+| checkpoint | checkpoints_v4/ppo_v4_900000_steps.zip | 14 | 900000 |  | 122227610a9b6aa8 |
 | training | ppo_v2 |  | 1000000 | 14.81049324474967 |  |
+| training | ppo_v3_final |  | 1000000 | 17.62557729842656 |  |
+| training | ppo_v4_final |  | 1000000 | 75.69656082987785 |  |
 | ablation | full |  | 100000 | 7.851168630576676 |  |
 | ablation | no_sync_fix |  | 100000 | 12.824999379889766 |  |
 | ablation | no_bass_swap |  | 100000 | 6.052910581694506 |  |

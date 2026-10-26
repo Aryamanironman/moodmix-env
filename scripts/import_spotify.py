@@ -23,7 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from moodmix_env.library import analyze_track
+from moodmix_env.library_v2 import analyze_track
 from moodmix_env.spotify import (
     build_local_index, fetch_spotify_tracks, match_tracks,
 )
@@ -37,7 +37,7 @@ def main() -> None:
     parser.add_argument("--audio-dir", type=Path, required=True,
                         help="folder of audio files you own")
     parser.add_argument("--out", type=Path, default=None,
-                        help="default: <audio-dir>/manifest.json")
+                        help="default: <audio-dir>/manifest_v2.json")
     parser.add_argument("--mood", default=None,
                         help="force one mood for all matched tracks")
     parser.add_argument("--client-id", default=None)
@@ -51,7 +51,7 @@ def main() -> None:
     audio_dir = args.audio_dir.resolve()
     if not audio_dir.exists():
         raise SystemExit(f"audio dir not found: {audio_dir}")
-    out = (args.out or audio_dir / "manifest.json").resolve()
+    out = (args.out or audio_dir / "manifest_v2.json").resolve()
 
     print("fetching Spotify metadata ...", flush=True)
     records = fetch_spotify_tracks(
@@ -92,17 +92,15 @@ def main() -> None:
     for number, (record, path) in enumerate(matched, 1):
         print(f"analyzing {number}/{len(matched)}: {Path(path).name}", flush=True)
         track = analyze_track(path, mood=args.mood)
-        track["file"] = str(Path(path).resolve())
+        track["file"] = Path(path).name
         track["spotify_id"] = record["id"]
         track["spotify_title"] = record["title"]
         track["spotify_artist"] = record["artist"]
         tracks.append(track)
 
     manifest = {
-        "sample_rate": 22050,
-        "beats_per_bar": 4,
-        "bars": max(len(t["sections"]) for t in tracks),
-        "beats": max(len(t["band_curve"]) for t in tracks),
+        "version": 2,
+        "sample_rate": 44100,
         "tracks": tracks,
     }
     out.parent.mkdir(parents=True, exist_ok=True)
