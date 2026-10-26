@@ -209,7 +209,8 @@ def _filter_curves(filter_action: np.ndarray, sr: int) -> tuple[np.ndarray,
 
 
 def prepare_decks(env, sr: int = 44100,
-                  peak: float = 0.80) -> tuple[np.ndarray, np.ndarray]:
+                  peak: float = 0.80, pre_beats: int = 0,
+                  post_beats: int = 0) -> tuple[np.ndarray, np.ndarray]:
     """Return two dry, beat-aligned, loudness-matched decks for live mixing.
 
     The decks contain the same time stretch, beat warp and vocal ducking as
@@ -301,6 +302,49 @@ def prepare_decks(env, sr: int = 44100,
     for deck in (a_dry, b_dry):
         deck[:fade] *= ramp
         deck[-fade:] *= ramp[::-1]
+
+    pre_beats = max(0, min(int(pre_beats), cue_a))
+    post_beats = max(0, int(post_beats))
+    if pre_beats or post_beats:
+        pre = _slice(audio_a, sr, float(ta[cue_a - pre_beats]),
+                     pre_beats * beat_a) if pre_beats else np.zeros(
+                         (0, 2), dtype=np.float32)
+        post = _slice(audio_a, sr, float(ta[end_index]),
+                      post_beats * beat_a) if post_beats else np.zeros(
+                          (0, 2), dtype=np.float32)
+        pre_b = np.zeros_like(pre)
+        if post_beats:
+            post_b = _slice(
+                audio_b, sr,
+                float(tb[min(cue_b + n_steps, len(tb) - 1)]),
+                post_beats * beat_a * rate)
+            post_b = _time_stretch(post_b, rate)
+            post_b = _fit_length(post_b, len(post))
+            env_a_post = _smooth(_rms_envelope(post, sr), 24)
+            env_b_post = _smooth(_rms_envelope(post_b, sr), 24)
+            if len(env_a_post) and len(env_b_post):
+                match_post = np.clip(
+                    env_a_post / (env_b_post + 1e-6), 0.5, 2.0)
+                match_post = _smooth(match_post, 32)
+                match_t_post = np.linspace(
+                    0.0, len(post) / sr, len(match_post))
+                post_b = post_b * np.interp(
+                    np.arange(len(post_b)) / sr,
+                    match_t_post, match_post)[:, None].astype(np.float32)
+        else:
+            post_b = np.zeros_like(post)
+        a_dry = np.concatenate([pre, a_dry, post], axis=0)
+        b_dry = np.concatenate([pre_b, b_dry, post_b], axis=0)
+        loudest = max(float(np.max(np.abs(a_dry))),
+                      float(np.max(np.abs(b_dry))), 1e-9)
+        scale = peak / loudest
+        a_dry = (a_dry * scale).astype(np.float32)
+        b_dry = (b_dry * scale).astype(np.float32)
+        fade = min(len(a_dry) // 2, max(1, int(0.010 * sr)))
+        ramp = np.linspace(0.0, 1.0, fade, dtype=np.float32)[:, None]
+        for deck in (a_dry, b_dry):
+            deck[:fade] *= ramp
+            deck[-fade:] *= ramp[::-1]
     return a_dry, b_dry
 
 

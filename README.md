@@ -457,9 +457,10 @@ Why v1 sounds different:
   renderer ducks the mid/high bands automatically when two leads meet;
 - the local player is a **hardware-style booth**: silver console, jog wheels,
   LCD track displays, channel meters, a filter knob, a crossfader and a built-in
-  scope. The **Library bar** takes a folder path or the Browse picker, then Load
-  folder. Each song is analysed once and the manifest is cached under
-  `runs/v1/library_cache`, so the user's music folder is never written to.
+  scope. The **Library bar** takes a server path or the Browse folder picker,
+  which uploads the selected folder to `runs/v1/web/uploads` and analyses it.
+  Each song is analysed once and the manifest is cached under
+  `runs/v1/library_cache`, so the user's original folder is never written to.
 
 The reward pays for bass-swap exclusivity, EQ separation, filter direction,
 phrase timing, level/spectral continuity, vocal space and a weak fader arc; it
@@ -501,8 +502,9 @@ python scripts/serve_v1.py --port 8050
 
 The 1M fine-tune from a high-score v3 checkpoint reached eval **+17.84**,
 low-band overlap **0.065** and mean level jump **0.192**. The booth runs the
-32-beat transition with the v3 model. The full-song stem renderer remains in
-the codebase but is not the default; the player is back to the transition clip.
+32-beat transition with the v3 model, plus four bars of deck A before and four
+bars of deck B after. The full-song stem renderer remains in the codebase but is
+not the default.
 
 ## DJSet-v4: stem remix experiment
 

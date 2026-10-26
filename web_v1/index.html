@@ -438,6 +438,7 @@
       <button id="lib-browse">Browse</button>
       <button id="lib-load">Load</button>
       <button id="lib-builtin">Built-in</button>
+      <input type="file" id="folder-input" webkitdirectory multiple hidden>
       <span class="count" id="lib-count">loading</span>
     </div>
     <nav class="links">
@@ -579,7 +580,7 @@
     library: null, data: null, policy: "model", mode: "auto",
     raf: 0, byId: {}, maxA: 1, maxB: 1,
     live: false, ready: false, playing: false, offset: 0, full: false,
-    bGain: 1,
+    window: false, bGain: 1,
     ctx: null, buffers: null, graph: null, sources: null, startAt: 0,
     media: null, mediaSources: null,
     echoGate: { a: { active: false, start: 0 },
@@ -806,7 +807,7 @@
     const width = W - L - R, height = H - T - B;
     const y = v => T + (1 - v) * height;
     const x = t => L + (t / data.duration) * width;
-    const full = Boolean(data.full);
+    const full = Boolean(data.full || data.window);
     let inner = "";
     for (const value of [0, 0.25, 0.5, 0.75, 1]) {
       inner += `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y(value)}" y2="${y(value)}"></line>`;
@@ -846,7 +847,9 @@
       inner += `<line class="playhead" id="playhead" x1="${L}" x2="${L}" y1="${T}" y2="${H - B}"></line>`;
       $("#chart").innerHTML = inner;
       const title = $("#scope-title");
-      if (title) title.textContent = "Song timeline / amber plan, white yours";
+      if (title) title.textContent = data.window
+        ? "Song window / amber plan, white yours"
+        : "Song timeline / amber plan, white yours";
       return;
     }
     const maxLevel = Math.max(...data.steps.map(s => s.level), 1e-6);
@@ -908,22 +911,23 @@
     const now = Number.isFinite(t) ? Math.max(0, t) : 0;
     const firstStep = data.steps[0];
     const lastStep = data.steps[data.steps.length - 1];
-    const startAt = data.full ? (data.transition_start || 0) : 0;
-    const endAt = data.full ? (data.transition_end || startAt) : 0;
-    if (data.full && now < startAt) {
+    const windowed = Boolean(data.full || data.window);
+    const startAt = windowed ? (data.transition_start || 0) : 0;
+    const endAt = windowed ? (data.transition_end || startAt) : 0;
+    if (windowed && now < startAt) {
       return { fader: 0, eqA: [0.5, 0.5, 0.5], eqB: [0.5, 0.5, 0.5],
                filter: 0, drumA: firstStep.drum_a ?? 1,
                drumB: firstStep.drum_b ?? 1, echoA: 0, echoB: 0,
                step: firstStep, index: 0, phase: "before" };
     }
-    if (data.full && now >= endAt) {
+    if (windowed && now >= endAt) {
       return { fader: 1, eqA: [0.5, 0.5, 0.5], eqB: [0.5, 0.5, 0.5],
                filter: 0, drumA: lastStep.drum_a ?? 1,
                drumB: lastStep.drum_b ?? 1, echoA: 0, echoB: 0,
                step: lastStep, index: data.steps.length - 1,
                phase: "after" };
     }
-    const local = data.full ? now - startAt : now;
+    const local = windowed ? now - startAt : now;
     let index = 0;
     while (index + 1 < times.length && times[index + 1] <= local) index += 1;
     const first = data.steps[Math.min(index, data.steps.length - 1)];
@@ -1116,6 +1120,7 @@
     }
     state.mediaSources = null;
     state.full = false;
+    state.window = false;
     state.bGain = 1;
     resetEchoGate();
     if (state.graph) {
@@ -1392,6 +1397,7 @@
     const bDrums = hasStems ? makeMedia(data.deck_b_drums_url) : null;
     state.media = { a: mediaA, b: mediaB, aDrums, bDrums };
     state.full = true;
+    state.window = false;
     state.live = true;
     state.ready = false;
     state.playing = false;
@@ -1441,6 +1447,7 @@
       return;
     }
     state.bGain = 1;
+    state.window = Boolean(data.window);
     const ctx = ensureCtx();
     const fetchDeck = async (url, name) => {
       const response = await fetch(url);
@@ -1823,14 +1830,15 @@
     }
     const best = $("#best-cues").checked;
     const body = { track_a: a, track_b: b, policy: state.policy,
-                   best_cues: best, seed: 0, live: true, full: false };
+                   best_cues: best, seed: 0, live: true, full: false,
+                   context_beats: 16 };
     if (!best) {
       body.cue_a = Number($("#cue-a").value);
       body.cue_b = Number($("#cue-b").value);
     }
     $("#render").disabled = true;
     $("#play").disabled = true;
-    setStatus("Rendering / preparing full songs and the transition", "");
+    setStatus("Rendering / preparing the transition window", "");
     try {
       const response = await fetch("/api/render", {
         method: "POST",
@@ -1956,20 +1964,40 @@
     setLibStatus(`${library.tracks.length} tracks ready from ${library.label}.`, "");
   }
 
-  async function browseFolder() {
-    setLibStatus("Waiting for the folder picker...");
+  function browseFolder() {
+    const input = $("#folder-input");
+    input.value = "";
+    input.click();
+  }
+
+  async function uploadFolder(fileList) {
+    const files = Array.from(fileList).filter(file =>
+      /\.(mp3|wav|flac|ogg|m4a|aiff|aif)$/i.test(file.name));
+    if (!files.length) {
+      setLibStatus("No audio files in that folder", "err");
+      return;
+    }
+    const data = new FormData();
+    for (const file of files) {
+      data.append("files", file, file.webkitRelativePath || file.name);
+    }
+    const folderName = files[0].webkitRelativePath
+      ? files[0].webkitRelativePath.split("/")[0] : "folder";
+    data.append("folder_name", folderName);
+    setLibStatus(`Uploading ${files.length} files...`, "");
+    setStatus("Uploading library", "");
+    setProgress(0.02);
     try {
-      const result = await fetch("/api/browse", { method: "POST" }).then(response => response.json());
-      if (result.path) {
-        $("#lib-path").value = result.path;
-        setLibStatus("Folder selected. Click Load.");
-      } else if (result.error) {
-        setLibStatus("Picker: " + result.error, "err");
-      } else {
-        setLibStatus("No folder selected.");
-      }
+      const response = await fetch("/api/upload", { method: "POST", body: data });
+      const info = await response.json();
+      if (!response.ok) throw new Error(info.error || `HTTP ${response.status}`);
+      $("#lib-path").value = info.path;
+      await scanLibrary({ path: info.path }, `Analyzing ${info.label}...`);
     } catch (error) {
-      setLibStatus("Picker failed: " + error.message, "err");
+      setLibStatus("Folder upload failed: " + error.message, "err");
+      setStatus("Library failed", "err");
+    } finally {
+      $("#folder-input").value = "";
     }
   }
 
@@ -1995,6 +2023,8 @@
     $("#lib-builtin").addEventListener("click", () =>
       scanLibrary({ preset: "crate" }, "Loading the built-in 20-song crate..."));
     $("#lib-browse").addEventListener("click", browseFolder);
+    $("#folder-input").addEventListener("change", event =>
+      uploadFolder(event.target.files));
     $("#lib-path").addEventListener("keydown", event => {
       if (event.key === "Enter") $("#lib-load").click();
     });

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import html
 import json
+import shutil
 import subprocess
 import sys
 import threading
@@ -17,6 +18,7 @@ import librosa
 import numpy as np
 import soundfile as sf
 from flask import Flask, jsonify, redirect, request, send_from_directory
+from werkzeug.utils import secure_filename
 
 from .env_v1 import MoodMixV1Env, key_distance
 from .env_v3 import MoodMixV3Env
@@ -543,6 +545,44 @@ a{{color:#a84a06}}
         return jsonify({"path": lines[-1] if lines else None,
                         "error": result.stderr.strip() or None})
 
+    @app.post("/api/upload")
+    def upload_folder():
+        files = request.files.getlist("files")
+        if not files:
+            return jsonify({"error": "no files in the upload"}), 400
+        folder_name = secure_filename(
+            str(request.form.get("folder_name", "upload"))) or "upload"
+        target = runs_dir / "uploads" / (
+            f"{folder_name}_{uuid.uuid4().hex[:8]}")
+        target.mkdir(parents=True, exist_ok=True)
+        saved = 0
+        skipped = 0
+        for storage in files:
+            name = Path(storage.filename or "").name
+            filename = secure_filename(name)
+            if (not filename
+                    or Path(filename).suffix.lower() not in AUDIO_EXTS):
+                skipped += 1
+                continue
+            destination = target / filename
+            if destination.exists():
+                destination = target / (
+                    f"{destination.stem}_{uuid.uuid4().hex[:4]}"
+                    f"{destination.suffix}")
+            storage.save(destination)
+            saved += 1
+        if not saved:
+            shutil.rmtree(target, ignore_errors=True)
+            return jsonify({
+                "error": "no mp3/wav/flac/ogg/m4a/aiff files in that folder"
+            }), 400
+        return jsonify({
+            "path": str(target),
+            "label": folder_name,
+            "saved": saved,
+            "skipped": skipped,
+        })
+
     @app.post("/api/render")
     def render_endpoint():
         snapshot = _snapshot()
@@ -566,6 +606,11 @@ a{{color:#a84a06}}
         use_best = bool(payload.get("best_cues", True))
         live = bool(payload.get("live"))
         full = bool(payload.get("full"))
+        try:
+            context_beats = int(payload.get("context_beats", 0) or 0)
+        except (TypeError, ValueError):
+            context_beats = 0
+        context_beats = max(0, min(32, context_beats))
         cue_a = payload.get("cue_a")
         cue_b = payload.get("cue_b")
         cue_a = int(cue_a) if cue_a is not None else None
@@ -654,6 +699,7 @@ a{{color:#a84a06}}
             "deck_b_url": None,
             "live": live,
             "full": False,
+            "window": False,
         }
 
         if live and full:
@@ -751,14 +797,35 @@ a{{color:#a84a06}}
         deck_a_path = runs_dir / deck_a_name
         deck_b_path = runs_dir / deck_b_name
         if live:
+            pre = min(context_beats, env.cue_a)
+            post = context_beats
+            if pre or post:
+                suffix = f"__w{pre}_{post}"
+                deck_a_name = f"{stem}{suffix}__deck_a.wav"
+                deck_b_name = f"{stem}{suffix}__deck_b.wav"
+                deck_a_path = runs_dir / deck_a_name
+                deck_b_path = runs_dir / deck_b_name
             if not deck_a_path.exists() or not deck_b_path.exists():
-                deck_a, deck_b = prepare_decks(env)
+                deck_a, deck_b = prepare_decks(
+                    env, pre_beats=pre, post_beats=post)
                 write_wav(deck_a, 44100, deck_a_path)
                 write_wav(deck_b, 44100, deck_b_path)
             result.update({
                 "deck_a_url": f"/audio/{deck_a_name}",
                 "deck_b_url": f"/audio/{deck_b_name}",
             })
+            if pre or post:
+                ta = np.asarray(env.track_a["beat_times"], dtype=np.float64)
+                beat_a = float(np.median(np.diff(ta)))
+                transition_start = pre * beat_a
+                transition_end = transition_start + float(
+                    ta[env.cue_a + env.step_count] - ta[env.cue_a])
+                result.update({
+                    "window": True,
+                    "transition_start": transition_start,
+                    "transition_end": transition_end,
+                    "duration": transition_end + post * beat_a,
+                })
             return jsonify(result)
 
         if not audio_path.exists():
