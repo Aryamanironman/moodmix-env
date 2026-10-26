@@ -1,0 +1,27 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Rendered mixes, web audio and TensorBoard (large, regenerable)
+runs/
+
+# Checkpoints and build artefacts (regenerable, hundreds of MB)
+checkpoints*/
+dist/
+*.log
+.env
+
+# Commercial audio and downloaded crates stay local; manifests are included.
+crate/*.mp3
+crate/*.wav
+crate/*.flac
+crate/*.ogg
+crate/*.m4a
+crate/*.aif
+crate/*.aiff
+songs/
+
+# Generated demo audio; regenerate with scripts/make_demo_library.py
+data/demo/*.wav

@@ -1,0 +1,31 @@
+{
+  "model": "models\\ppo_v1.zip",
+  "timesteps": 400000,
+  "n_envs": 4,
+  "n_steps": 512,
+  "seed": 0,
+  "max_steps": 32,
+  "data_dir": "crate",
+  "compatible_only": false,
+  "elapsed_seconds": 266.77,
+  "eval": {
+    "mean": 12.986861091684172,
+    "std": 0.2738913031383433,
+    "final_fader": 1.0,
+    "low_overlap": 0.1700138159288289,
+    "level_jump": 0.11249024815236527,
+    "component_eq_craft": 0.2959908652827591,
+    "component_bass_swap": 0.0,
+    "component_filter_craft": 0.3792439458193965,
+    "component_phrase": 0.51,
+    "component_busy_hands": -0.06120000000000001,
+    "component_jitter": -0.18,
+    "component_route": 0.0,
+    "component_continuity": 0.5505471682789701,
+    "component_mud": -0.271059563145041,
+    "component_fader_shape": 3.0289386102319855,
+    "component_cut_shape": 0.0,
+    "component_mix_quality": 6.7344000652161045,
+    "component_end_transition": 2.0
+  }
+}

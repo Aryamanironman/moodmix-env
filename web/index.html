@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MoodMix - transition lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark" aria-hidden="true"><span></span><span></span></div>
+      <div>
+        <h1>MoodMix</h1>
+        <p>transition lab</p>
+      </div>
+    </div>
+    <div class="session">
+      <label class="field">
+        <span>Mood</span>
+        <select id="mood">
+          <option value="party">Party</option>
+          <option value="energetic">Energetic</option>
+          <option value="happy">Happy</option>
+          <option value="focused">Focused</option>
+          <option value="relaxed">Relaxed</option>
+          <option value="emotional">Emotional</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Set length</span>
+        <select id="transitions">
+          <option value="2">2 transitions</option>
+          <option value="3">3 transitions</option>
+          <option value="4" selected>4 transitions</option>
+          <option value="6">6 transitions</option>
+          <option value="8">8 transitions</option>
+        </select>
+      </label>
+      <div class="segmented" role="group" aria-label="Policy">
+        <button type="button" data-policy="ppo" class="active">PPO</button>
+        <button type="button" data-policy="human">Human</button>
+        <button type="button" data-policy="random">Random</button>
+      </div>
+      <button type="button" id="run-set" class="run run-set">Run set</button>
+      <button type="button" id="run" class="run">Run transition</button>
+    </div>
+  </header>
+
+  <section class="set-strip" id="set-strip" hidden aria-label="DJ set">
+    <div class="set-head">
+      <span class="set-label">Set</span>
+      <span id="set-note" class="set-note">-</span>
+    </div>
+    <div class="set-chips" id="set-chips"></div>
+  </section>
+
+  <main class="stage">
+    <div class="decks">
+      <section class="deck deck-a" aria-label="Deck A">
+        <div class="deck-top">
+          <span class="deck-name">Deck A</span>
+          <span class="track" id="a-track">-</span>
+        </div>
+        <div class="meta">
+          <span id="a-bpm">-</span>
+          <span id="a-key">-</span>
+          <span class="pill" id="a-section">-</span>
+        </div>
+        <div class="eq" id="a-eq">
+          <div class="eq-row"><span>Low</span><b class="eq-pad" data-band="0">·</b></div>
+          <div class="eq-row"><span>Mid</span><b class="eq-pad" data-band="1">·</b></div>
+          <div class="eq-row"><span>High</span><b class="eq-pad" data-band="2">·</b></div>
+        </div>
+        <div class="meter"><span id="a-meter"></span></div>
+        <div class="beats" id="a-beats"><i></i><i></i><i></i><i></i></div>
+      </section>
+
+      <section class="mixer" aria-label="Mixer">
+        <div class="mixer-top">
+          <span class="mixer-label">Mixer</span>
+          <div class="beat-ring" id="beat-ring"><span id="beat-number">0</span></div>
+        </div>
+        <div class="switches">
+          <div class="switch" id="sync-switch"><span>Sync</span><b>off</b></div>
+          <div class="switch" id="filter-switch"><span>Filter</span><b>off</b></div>
+        </div>
+        <div class="pads" id="pads" aria-label="Drum pads">
+          <span class="pad" data-drum="kick">K</span>
+          <span class="pad" data-drum="snare">S</span>
+          <span class="pad" data-drum="hat">H</span>
+          <span class="pad" data-drum="clap">C</span>
+        </div>
+        <div class="mixer-foot">
+          <span id="position">beat 0 / 64</span>
+          <span id="event">ready</span>
+        </div>
+      </section>
+
+      <section class="deck deck-b" aria-label="Deck B">
+        <div class="deck-top">
+          <span class="deck-name">Deck B</span>
+          <span class="track" id="b-track">-</span>
+        </div>
+        <div class="meta">
+          <span id="b-bpm">-</span>
+          <span id="b-key">-</span>
+          <span class="pill" id="b-section">-</span>
+        </div>
+        <div class="eq" id="b-eq">
+          <div class="eq-row"><span>Low</span><b class="eq-pad" data-band="0">·</b></div>
+          <div class="eq-row"><span>Mid</span><b class="eq-pad" data-band="1">·</b></div>
+          <div class="eq-row"><span>High</span><b class="eq-pad" data-band="2">·</b></div>
+        </div>
+        <div class="meter"><span id="b-meter"></span></div>
+        <div class="beats" id="b-beats"><i></i><i></i><i></i><i></i></div>
+      </section>
+    </div>
+
+    <section class="fader-section" aria-label="Crossfader and target curve">
+      <div class="fader-head">
+        <span>Deck A</span>
+        <span class="readout" id="fader-readout">0.00</span>
+        <span>Deck B</span>
+      </div>
+      <div class="fader-track">
+        <div class="fader-fill" id="fader-fill"></div>
+        <div class="fader-target" id="fader-target"></div>
+        <div class="fader-thumb" id="fader-thumb"></div>
+      </div>
+      <div class="curve-wrap">
+        <svg id="curve" viewBox="0 0 1000 90" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="actual-gradient" x1="0" x2="1">
+              <stop offset="0%" stop-color="#59e1ff"/>
+              <stop offset="100%" stop-color="#ff4fa3"/>
+            </linearGradient>
+          </defs>
+          <path id="curve-target" class="curve-target"></path>
+          <path id="curve-actual" class="curve-actual"></path>
+          <line id="curve-playhead" class="curve-playhead" x1="0" x2="0" y1="6" y2="84"></line>
+          <circle id="curve-dot" class="curve-dot" cx="0" cy="90" r="4"></circle>
+        </svg>
+      </div>
+      <div class="fader-legend">
+        <span>target curve</span>
+        <span id="curve-readout">target 0.00 · actual 0.00</span>
+        <span id="progress-label">0%</span>
+      </div>
+    </section>
+  </main>
+
+  <footer class="telemetry">
+    <div class="score-block">
+      <span class="label">Transition score</span>
+      <strong id="score">-</strong>
+      <span id="score-note">choose a mood and run</span>
+    </div>
+    <div class="components" id="components"></div>
+    <div class="log" id="log" aria-live="polite">Ready.</div>
+  </footer>
+
+  <audio id="audio" preload="auto"></audio>
+  <div class="sr-only" id="status" aria-live="polite"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

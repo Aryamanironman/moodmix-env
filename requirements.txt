@@ -1,0 +1,6 @@
+gymnasium>=1.0
+numpy>=1.26
+rich>=13
+soundfile>=0.12
+scipy>=1.11
+pytest>=8

@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "moodmix-env"
+version = "0.1.0"
+description = "A Gymnasium environment where an RL agent learns to DJ transitions."
+requires-python = ">=3.10"
+dependencies = [
+    "gymnasium>=1.0",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+demo = ["rich>=13", "soundfile>=0.12", "scipy>=1.11"]
+train = [
+    "stable-baselines3>=2.3",
+    "torch>=2.2",
+    "tensorboard>=2.16",
+    "boto3>=1.34",
+]
+web = [
+    "flask>=3.0",
+    "stable-baselines3>=2.3",
+    "torch>=2.2",
+    "soundfile>=0.12",
+    "scipy>=1.11",
+    "rich>=13",
+]
+library = ["librosa>=0.10", "soundfile>=0.12"]
+spotify = ["spotipy>=2.24", "mutagen>=1.47"]
+dev = [
+    "pytest>=8",
+    "rich>=13",
+    "soundfile>=0.12",
+    "scipy>=1.11",
+    "stable-baselines3>=2.3",
+    "torch>=2.2",
+    "flask>=3.0",
+    "librosa>=0.10",
+    "spotipy>=2.24",
+    "mutagen>=1.47",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

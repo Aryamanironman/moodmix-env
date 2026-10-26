@@ -1,0 +1,15 @@
+{
+  "model": "C:\\Users\\asus\\moodmix-env\\models\\ppo_100k.zip",
+  "timesteps": 100000,
+  "n_envs": 8,
+  "n_steps": 256,
+  "batch_size": 256,
+  "seed": 0,
+  "mood": null,
+  "max_steps": 64,
+  "eval_mean_reward": 38.459383736794024,
+  "eval_std_reward": 0.36897045293102537,
+  "eval_episodes": 10,
+  "elapsed_seconds": 387.81,
+  "s3_uri": null
+}
