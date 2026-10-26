@@ -10,7 +10,7 @@ The repo now includes the environment, a PPO training loop with checkpointing
 and S3 sync, a browser controller, an evaluation harness against a hand-written
 human baseline, and adapters for your own music library.
 
-![MoodMix browser controller](web/preview.png)
+![MoodMix Silver Booth player](web_v1/preview.png)
 
 ## Quickstart
 
@@ -455,8 +455,10 @@ Why v1 sounds different:
   overrides it with real lyric timings), the reward charges a vocal clash and
   credits ducking, cue choice prefers a phrase whose vocal is ending, and the
   renderer ducks the mid/high bands automatically when two leads meet;
-- the local player has a **Library bar**: paste a folder path or press Browse,
-  then Load folder. Each song is analysed once and the manifest is cached under
+- the local player is a **hardware-style booth**: silver console, jog wheels,
+  LCD track displays, channel meters, a filter knob, a crossfader and a built-in
+  scope. The **Library bar** takes a folder path or the Browse picker, then Load
+  folder. Each song is analysed once and the manifest is cached under
   `runs/v1/library_cache`, so the user's music folder is never written to.
 
 The reward pays for bass-swap exclusivity, EQ separation, filter direction,

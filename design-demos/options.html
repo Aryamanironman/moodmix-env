@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MoodMix - three directions</title>
+<style>
+  :root{--paper:#eceef0;--ink:#16191d;--muted:#5d656d;--line:#c9ced3;--accent:#a84a06}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
+  .wrap{max-width:1240px;margin:0 auto;padding:32px 22px 64px}
+  header{display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+    border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:24px;flex-wrap:wrap}
+  h1{font-size:22px;margin:0;letter-spacing:-.02em}
+  header span{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--muted)}
+  .intro{max-width:78ch;color:var(--muted);font-size:14px;margin:0 0 24px}
+  .option{border:1px solid var(--line);background:#fff;margin-bottom:26px}
+  .option-head{display:grid;grid-template-columns:40px 1fr auto;gap:12px;
+    align-items:baseline;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .letter{font-family:ui-monospace,monospace;font-size:12px;font-weight:600;
+    color:#fff;background:var(--ink);width:26px;height:26px;display:flex;
+    align-items:center;justify-content:center}
+  .option h2{font-size:18px;margin:0;letter-spacing:-.01em}
+  .option-head .tag{font-family:ui-monospace,monospace;font-size:11px;
+    color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .option img{display:block;width:100%;height:auto;border-bottom:1px solid var(--line)}
+  .option-body{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;padding:14px 16px}
+  .option-body p{margin:0 0 8px;font-size:14px}
+  .option-body b{font-weight:600}
+  .facts{font-size:13px;color:var(--muted)}
+  .facts div{padding:4px 0;border-bottom:1px solid #e3e6e9}
+  .facts div:last-child{border-bottom:0}
+  .facts span{font-family:ui-monospace,monospace;font-size:11px;
+    text-transform:uppercase;letter-spacing:.05em;margin-right:6px}
+  .open{display:inline-block;margin-top:8px;font-family:ui-monospace,monospace;
+    font-size:12px;color:var(--accent);text-decoration:none;border-bottom:1px solid}
+  .open:hover{color:var(--ink);border-color:var(--ink)}
+  .thumbs{margin-top:28px}
+  .thumbs h3{font-size:15px;margin:0 0 6px}
+  .thumbs p{font-size:13px;color:var(--muted);margin:0 0 10px}
+  .thumbs img{width:100%;height:auto;border:1px solid var(--line);background:#fff}
+  footer{margin-top:24px;font-family:ui-monospace,monospace;font-size:11px;
+    color:var(--muted);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  @media(max-width:760px){.option-body{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>MoodMix / three directions</h1>
+    <span>desktop review · real v2 content · pick A, B or C</span>
+  </header>
+  <p class="intro">
+    Same player, same 20-song crate, same Blinding Lights to The Night We Met v2
+    transition. Three different design languages, not three color skins. Open either
+    the screenshot below or the live HTML demo at 1440px.
+  </p>
+
+  <section class="option">
+    <div class="option-head">
+      <div class="letter">A</div>
+      <h2>Silver Booth</h2>
+      <div class="tag">hardware instrument</div>
+    </div>
+    <img src="dir-1-1440.png" alt="Silver Booth hardware console">
+    <div class="option-body">
+      <div>
+        <p><b>The mix is performed on a physical console.</b> Silver aluminum faceplate, black CDJ-style jog wheels, dark LCD track displays, amber LEDs, channel strips and a built-in scope. The crate is a row of dark record sleeves.</p>
+        <p>Most literal reading of "an actual DJ set". Tactile, premium, dense. Best if the demo should feel like standing at a booth.</p>
+        <a class="open" href="dir-1.html">Open the live direction</a>
+      </div>
+      <div class="facts">
+        <div><span>source</span>Teenage Engineering TX-6 / OP-1 field + Pioneer CDJ-3000</div>
+        <div><span>form</span>the crossfader and EQ are the page</div>
+        <div><span>tradeoff</span>dense; controls are display-only in the preview</div>
+        <div><span>red lines</span>clear · 1440 / 375 clean</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="option">
+    <div class="option-head">
+      <div class="letter">B</div>
+      <h2>Performance View</h2>
+      <div class="tag">software console</div>
+    </div>
+    <img src="dir-2-1440.png" alt="Performance View software console">
+    <div class="option-body">
+      <div>
+        <p><b>The waveform is the hero.</b> Two stacked deck lanes with beat grids and phrase marks, a collection browser, a mixer with EQ, filter, crossfader, FX and master metering. Built from the real v2 trace.</p>
+        <p>Feels like Traktor or rekordbox. Best if the point is watching the model shape the blend and reading the data quickly.</p>
+        <a class="open" href="dir-2.html">Open the live direction</a>
+      </div>
+      <div class="facts">
+        <div><span>source</span>Native Instruments Traktor Pro 4</div>
+        <div><span>form</span>a performance screen, not a dashboard</div>
+        <div><span>tradeoff</span>less tactile; browser is narrow at 1440</div>
+        <div><span>red lines</span>clear · 1440 / 375 clean</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="option">
+    <div class="option-head">
+      <div class="letter">C</div>
+      <h2>Printed Scorecard</h2>
+      <div class="tag">risograph print</div>
+    </div>
+    <img src="dir-3-1440.png" alt="Printed Scorecard risograph sheet">
+    <div class="option-body">
+      <div>
+        <p><b>The score is the cover.</b> Straw paper, a monumental 14.98 in red and blue horizontal stripes, tilted yellow and black blocks, a hand-drawn wave, a printed transition chart, score table, liner-note crate and a black control strip.</p>
+        <p>Best as a shareable artifact or a portfolio piece about the model. It makes the result, not the tooling, the subject.</p>
+        <a class="open" href="dir-3.html">Open the live direction</a>
+      </div>
+      <div class="facts">
+        <div><span>source</span>Hattori Playful Offset + David Carson</div>
+        <div><span>form</span>a printed scorecard for the transition</div>
+        <div><span>tradeoff</span>less like a live tool; stronger as a poster</div>
+        <div><span>red lines</span>clear · 1440 / 375 clean</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="thumbs">
+    <h3>Six candidates / three alternates</h3>
+    <p>The other three cards are the Carson deconstructed flyer, the black Pioneer booth and the Gallery Dark listening room. Say the word and I can develop one instead.</p>
+    <img src="thumbs.png" alt="Six direction thumbnails">
+  </section>
+
+  <footer>
+    <span>MoodMix DJSet-v1 / recorded v2 transition / 14.98</span>
+    <span>previews: <a href="dir-1.html">A</a> · <a href="dir-2.html">B</a> · <a href="dir-3.html">C</a></span>
+  </footer>
+</div>
+</body>
+</html>

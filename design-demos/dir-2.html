@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MoodMix - Performance View</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#06090d; --panel:#0b1118; --panel-2:#0e1620; --line:#1a2733;
+    --line-2:#243546; --text:#e6eef6; --muted:#9aa8b6; --dim:#71808f;
+    --cyan:#49e5ff; --magenta:#ff3d9a; --blue:#4f7dff; --amber:#f0a13a;
+    --good:#5fd68c; --red:#ff5a4f;
+    --grotesk:"Hanken Grotesk",sans-serif; --mono:"JetBrains Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--grotesk);
+    font-size:14px;line-height:1.4}
+  button,input,select{font:inherit}
+  .app{height:100vh;overflow:hidden;display:flex;flex-direction:column}
+  .topbar{flex:0 0 54px;display:grid;grid-template-columns:auto 1fr auto;
+    gap:16px;align-items:center;padding:0 14px;border-bottom:1px solid var(--line);
+    background:#080d12}
+  .brand{font-family:var(--mono);font-size:13px;letter-spacing:.12em;
+    color:var(--cyan);white-space:nowrap;text-transform:uppercase}
+  .brand span{color:var(--muted);font-size:11px}
+  .lib{display:flex;align-items:center;gap:7px;min-width:0;justify-self:center;
+    width:100%;max-width:680px}
+  .lib .lab{font-family:var(--mono);font-size:12px;color:var(--muted);
+    letter-spacing:.06em;white-space:nowrap}
+  .lib input{flex:1;min-width:0;background:#05080b;border:1px solid var(--line-2);
+    color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 9px;
+    border-radius:4px}
+  .lib button,.top-right button{background:#101a24;border:1px solid var(--line-2);
+    color:var(--muted);font-family:var(--mono);font-size:12px;padding:7px 9px;
+    border-radius:4px;cursor:pointer}
+  .lib button:hover,.top-right button:hover{border-color:var(--cyan);color:var(--cyan)}
+  .lib .count{font-family:var(--mono);font-size:12px;color:var(--muted);
+    white-space:nowrap}
+  .top-right{display:flex;align-items:center;gap:10px;justify-self:end}
+  .model{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+  .model b{color:var(--good);font-weight:500}
+  #render{background:var(--cyan);border-color:var(--cyan);color:#041418;
+    font-weight:600;letter-spacing:.04em}
+  .top-links{display:flex;gap:12px}
+  .top-links a{font-family:var(--mono);font-size:12px;color:var(--muted);
+    text-decoration:none;white-space:nowrap}
+  .top-links a:hover{color:var(--cyan)}
+
+  .shell{flex:1;min-height:0;display:grid;
+    grid-template-columns:232px minmax(0,1fr) 286px}
+  .browser{min-height:0;border-right:1px solid var(--line);background:#080d13;
+    display:flex;flex-direction:column}
+  .browser-head{display:flex;justify-content:space-between;align-items:center;
+    padding:11px 12px 8px;font-family:var(--mono);font-size:12px;color:var(--muted);
+    letter-spacing:.06em}
+  .browser-head b{color:var(--text);font-weight:500}
+  #search{margin:0 12px 8px;background:#05080b;border:1px solid var(--line-2);
+    color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 8px;
+    border-radius:4px;outline:none}
+  #search:focus{border-color:var(--cyan)}
+  .filters{display:flex;gap:5px;padding:0 12px 8px}
+  .filters button{flex:1;background:#0b131b;border:1px solid var(--line);
+    color:var(--muted);font-family:var(--mono);font-size:11px;padding:5px 3px;
+    border-radius:3px;cursor:pointer}
+  .filters button.active{color:var(--cyan);border-color:#1c4c5b;background:#0a1a21}
+  .track-list{flex:1;overflow:auto;padding:0 6px 6px}
+  .track-row{width:100%;display:grid;grid-template-columns:22px 1fr;
+    gap:6px;align-items:center;padding:7px 7px;border:1px solid transparent;
+    border-radius:4px;background:#080d13;color:var(--text);text-align:left;
+    cursor:pointer;border-bottom:1px solid #101a23}
+  .track-row:hover{background:#0b141c}
+  .track-row.current{border-color:#1d4a58;background:#0a1a21}
+  .track-row .idx{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .track-row .name{font-size:13px;font-weight:500;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .track-row .meta{font-family:var(--mono);font-size:11px;color:var(--muted);
+    margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .track-row.current .name{color:var(--cyan)}
+  .browser-foot{padding:8px 12px;border-top:1px solid var(--line);
+    font-family:var(--mono);font-size:11px;color:var(--dim);line-height:1.6}
+  .browser-foot b{color:var(--muted);font-weight:500}
+
+  .decks{min-height:0;display:flex;flex-direction:column;gap:8px;padding:8px 10px}
+  .deck{flex:1;min-height:0;display:flex;flex-direction:column;
+    border:1px solid var(--line);border-radius:6px;background:var(--panel);
+    overflow:hidden}
+  .deck-head{flex:0 0 44px;display:flex;align-items:center;gap:9px;
+    padding:0 10px;border-bottom:1px solid var(--line);background:#0a1118}
+  .deck-badge{width:22px;height:22px;border-radius:3px;display:flex;
+    align-items:center;justify-content:center;font-family:var(--mono);
+    font-size:12px;font-weight:600;color:#041014;background:var(--cyan)}
+  .deck.b .deck-badge{background:var(--magenta);color:#1c0410}
+  .track-select{flex:1;min-width:0;background:transparent;border:0;color:var(--text);
+    font-family:var(--grotesk);font-size:18px;font-weight:600;letter-spacing:-.01em;
+    outline:none;cursor:pointer}
+  .deck-data{display:flex;gap:12px;flex:0 0 auto}
+  .deck-data .k{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .deck-data .v{font-family:var(--mono);font-size:12px;color:var(--text)}
+  .cue-select{background:#05080b;border:1px solid var(--line-2);color:var(--muted);
+    font-family:var(--mono);font-size:12px;padding:4px 5px;border-radius:3px;
+    max-width:164px}
+  .sync{font-family:var(--mono);font-size:11px;color:var(--good);
+    display:flex;align-items:center;gap:5px;white-space:nowrap}
+  .sync:before{content:"";width:5px;height:5px;border-radius:50%;
+    background:var(--good);box-shadow:0 0 6px var(--good)}
+  .wave-wrap{flex:1;min-height:0;position:relative;background:#05080b}
+  .wave-wrap svg{width:100%;height:100%;display:block}
+  .wave-label{position:absolute;left:10px;top:8px;font-family:var(--mono);
+    font-size:11px;color:#c7d5df;letter-spacing:.03em;background:#05080bbb;
+    padding:2px 5px;border-radius:2px}
+  .deck-foot{flex:0 0 28px;display:flex;align-items:center;gap:14px;padding:0 10px;
+    border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;
+    color:var(--muted)}
+  .deck-foot b{color:var(--text);font-weight:500}
+  .analysis{flex:0 0 126px;border:1px solid var(--line);border-radius:6px;
+    background:var(--panel);padding:7px 10px 6px;display:flex;flex-direction:column}
+  .analysis-head{display:flex;justify-content:space-between;gap:10px;
+    font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em;
+    flex-wrap:wrap}
+  .analysis-head b{color:var(--text);font-weight:500}
+  .analysis svg{flex:1;min-height:0;width:100%;margin-top:2px}
+  .analysis-foot{display:flex;align-items:center;gap:9px;margin-top:2px}
+  #play{background:var(--cyan);border:0;color:#041418;font-family:var(--mono);
+    font-size:12px;font-weight:600;padding:6px 11px;border-radius:3px;cursor:pointer}
+  #seek{flex:1;min-width:0;accent-color:var(--cyan)}
+  .time{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+  .comp-mini{display:flex;gap:9px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .comp-mini b{color:var(--text);font-weight:500}
+  .grid-line{stroke:#13202b;stroke-width:1}
+  .beat-line{stroke:#1b3241;stroke-width:1}
+  .phrase-line{stroke:#2b5568;stroke-width:1}
+  .axis{fill:#7f91a1;font:12px var(--mono)}
+  .wave-a{fill:#49e5ff33;stroke:#49e5ffaa;stroke-width:1}
+  .wave-b{fill:#ff3d9a33;stroke:#ff3d9aaa;stroke-width:1}
+  .playhead{stroke:#f4fbff;stroke-width:1;opacity:.8}
+  .chart-fader{fill:none;stroke:var(--amber);stroke-width:1.6}
+  .chart-target{fill:none;stroke:#7f91a1;stroke-width:1;stroke-dasharray:4 4}
+  .chart-level{fill:none;stroke:var(--cyan);stroke-width:1;opacity:.7}
+  .chart-overlap{fill:none;stroke:var(--red);stroke-width:1;opacity:.8}
+
+  .mixer{min-height:0;border-left:1px solid var(--line);background:#080d13;
+    display:flex;flex-direction:column;overflow:auto}
+  .mixer-head{display:flex;justify-content:space-between;align-items:baseline;
+    padding:11px 13px 0;font-family:var(--mono);font-size:12px;color:var(--muted);
+    letter-spacing:.06em}
+  .mixer-head b{font-family:var(--mono);font-size:26px;color:var(--text);
+    letter-spacing:-.04em;font-weight:500}
+  .mixer-sub{padding:1px 13px 9px;font-family:var(--mono);font-size:11px;
+    color:var(--dim);border-bottom:1px solid var(--line)}
+  .channels{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:9px 11px}
+  .channel{border:1px solid var(--line);border-radius:4px;background:#0a1219;
+    padding:7px 6px;display:flex;flex-direction:column;gap:6px;align-items:center}
+  .ch-head{width:100%;display:flex;justify-content:space-between;
+    font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .ch-head b{color:var(--cyan);font-weight:500}
+  .channel.b .ch-head b{color:var(--magenta)}
+  .knobs{display:flex;gap:6px}
+  .knob{width:29px;height:29px;border-radius:50%;position:relative;
+    background:radial-gradient(circle at 36% 30%,#263746,#0c151d 65%,#071016);
+    border:1px solid #2c4455;box-shadow:inset 0 1px 0 #3d5b6d}
+  .knob:after{content:"";position:absolute;left:50%;top:3px;width:2px;height:9px;
+    background:var(--cyan);transform:translateX(-50%);transform-origin:50% 11.5px}
+  .channel.b .knob:after{background:var(--magenta)}
+  .knob-label{font-family:var(--mono);font-size:11px;color:var(--dim);
+    text-align:center;margin-top:1px}
+  .eq{display:flex;flex-direction:column;align-items:center}
+  .vu{width:8px;height:72px;background:#04080b;border:1px solid #1a2a36;
+    display:flex;flex-direction:column-reverse;gap:1px;padding:1px}
+  .vu i{height:4px;border-radius:1px;background:#12202a}
+  .vu i.on{background:var(--good);box-shadow:0 0 4px #5fd68c55}
+  .vu i.on.warn{background:#f0c53a;box-shadow:0 0 4px #f0c53a55}
+  .vu i.on.hot{background:var(--red);box-shadow:0 0 4px #ff5a4f55}
+  .meter-row{display:flex;gap:9px;align-items:flex-end;height:72px}
+  .filter-row{display:flex;align-items:center;gap:9px;padding:2px 13px 6px}
+  .filter-row .knob{width:38px;height:38px}
+  .filter-row .knob:after{height:12px;transform-origin:50% 15px}
+  .filter-copy{display:flex;flex-direction:column}
+  .filter-copy .k{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .filter-copy .v{font-family:var(--mono);font-size:11px;color:var(--cyan);margin-top:2px}
+  .cross{padding:4px 13px 7px}
+  .cross-labels{display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:11px;color:var(--muted);margin-bottom:4px}
+  .cross-rail{height:24px;position:relative;display:flex;align-items:center}
+  .cross-rail i{position:absolute;left:0;right:0;height:4px;border-radius:3px;
+    background:#04080b;border:1px solid #223543}
+  .cross-cap{position:absolute;left:0;width:27px;height:17px;border-radius:2px;
+    transform:translateX(-50%);background:linear-gradient(#dceaf2,#5f7d8e);
+    border:1px solid #182833;box-shadow:0 2px 4px #0008}
+  .fx{padding:1px 13px 7px;display:grid;grid-template-columns:auto 1fr 1fr auto;
+    gap:5px;align-items:center;font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .fx button{background:#0a1219;border:1px solid var(--line-2);color:var(--muted);
+    font-family:var(--mono);font-size:11px;padding:5px 3px;border-radius:3px;cursor:pointer}
+  .fx button:hover{border-color:var(--cyan);color:var(--cyan)}
+  .fx .on{color:var(--magenta);border-color:#5b1f42}
+  .vocal{display:flex;justify-content:space-between;align-items:center;
+    margin:0 13px 8px;padding:6px 7px;border:1px solid #1e4a3a;
+    border-radius:3px;font-family:var(--mono);font-size:11px;color:var(--good);
+    background:#08140f}
+  .vocal b{font-weight:500}
+  .master{margin:4px 13px 8px;border:1px solid var(--line);border-radius:4px;
+    padding:7px 8px;background:#0a1219}
+  .master-head{display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:12px;color:var(--muted)}
+  .master-head b{color:var(--text);font-weight:500}
+  .master-vu{display:flex;gap:2px;height:22px;align-items:flex-end;margin:6px 0}
+  .master-vu i{flex:1;height:4px;background:#12202a;border-radius:1px}
+  .master-vu i.on{background:var(--good);height:8px}
+  .master-vu i.on.warn{background:#f0c53a;height:12px}
+  .master-vu i.on.hot{background:var(--red);height:18px}
+  .master-meta{display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:12px;color:var(--muted)}
+  .cue-pair{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px}
+  .cue-pair button{background:#0b131b;border:1px solid var(--line-2);color:var(--muted);
+    font-family:var(--mono);font-size:12px;padding:5px 3px;border-radius:3px;cursor:pointer}
+  .cue-pair button:hover{border-color:var(--cyan);color:var(--cyan)}
+  .mixer-foot{margin-top:auto;border-top:1px solid var(--line);padding:8px 13px 11px;
+    display:flex;flex-direction:column;gap:7px}
+  .switch{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line-2);
+    border-radius:3px;overflow:hidden}
+  .switch button{background:#0a1219;border:0;color:var(--muted);
+    font-family:var(--mono);font-size:11px;padding:6px 4px;cursor:pointer}
+  .switch button.active{background:#0a2a33;color:var(--cyan)}
+  .best{display:flex;align-items:center;gap:6px;font-family:var(--mono);
+    font-size:11px;color:var(--muted)}
+  .best input{accent-color:var(--cyan)}
+  .mixer-foot .note{font-family:var(--mono);font-size:11px;color:var(--dim);
+    line-height:1.5}
+
+  @media (max-width:1100px){
+    .shell{grid-template-columns:206px minmax(0,1fr) 264px}
+    .cue-select{max-width:86px}
+  }
+  @media (max-width:900px){
+    .app{height:auto;overflow:visible}
+    .topbar{grid-template-columns:1fr;height:auto;padding:9px 12px;gap:8px}
+    .lib{max-width:none;justify-self:start;flex-wrap:wrap}
+    .lib input{flex:1 1 100%;order:5}
+    .lib .count{order:6}
+    .top-right{justify-self:start;flex-wrap:wrap}
+    .shell{display:flex;flex-direction:column;min-height:0}
+    .browser{order:2;max-height:none;border-right:0;border-bottom:1px solid var(--line)}
+    .track-list{max-height:220px}
+    .decks{order:3;padding:8px}
+    .deck{flex:0 0 300px;min-height:300px}
+    .analysis{flex:0 0 140px}
+    .mixer{order:4;border-left:0;border-top:1px solid var(--line)}
+    .mixer-head b{font-size:24px}
+    .channels{grid-template-columns:1fr 1fr}
+    .track-select{font-size:16px}
+    .deck-head{flex-wrap:wrap;flex-basis:auto;padding:6px 8px;gap:5px}
+    .deck-data{gap:7px}
+    .cue-select{max-width:none;flex:1 1 100%;order:4}
+    .track-select{flex:1 1 100%;order:2;font-size:18px}
+    .deck-badge{order:1}
+    .deck-data{order:3}
+    .sync{display:none}
+    .deck-foot{flex-wrap:wrap;height:auto;padding:5px 8px;gap:8px;flex-basis:auto}
+    .analysis-foot{flex-wrap:wrap}
+    .analysis-head{font-size:12px}
+  }
+
+  /* Readability floor: body 14, labels 12, stronger muted text. */
+  .top-links a,.lib .lab,.lib .count,.browser-head,.filters button,
+  .track-row .idx,.track-row .meta,.deck-data .k,.cue-select,.sync,.deck-foot,
+  .wave-label,.time,.comp-mini,.mixer-head,.ch-head,.knob-label,.filter-copy,
+  .cross-labels,.fx,.vocal,.switch,.best,.axis{font-size:12px}
+  .track-row .name{font-size:14px}
+  .track-row .idx,.track-row .meta{font-size:14px}
+  .track-row > span:last-child{min-width:0}
+  .track-row .name{display:block}
+  .track-row .meta{display:block;background:#080d13;padding:1px 2px}
+  .axis{font-size:15px}
+  .brand span,.filter-copy .k,.filter-copy .v,.fx button,.switch button{font-size:12px}
+  .wave-label{font-size:14px}
+  .model,.mixer-sub,.analysis-head,.browser-foot,.mixer-foot .note{font-size:14px}
+  .mixer-sub,.browser-foot,.mixer-foot .note{line-height:1.5}
+  .top-links a,.lib .lab,.lib .count,.browser-head,.filters button,.track-row .idx,
+  .track-row .meta,.deck-data .k,.cue-select,.sync,.deck-foot,.wave-label,.time,
+  .comp-mini,.mixer-head,.ch-head,.knob-label,.filter-copy,.cross-labels,.fx,
+  .vocal,.best,.axis,.browser-foot,.mixer-sub,.mixer-foot .note{color:var(--muted)}
+  .sync,.vocal{color:var(--good)}
+  .track-row .meta{color:#c9d4dd}
+  .track-row .idx{color:#aebac6}
+  .axis{fill:#8fa2b2}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">MoodMix <span>/ Perform</span></div>
+    <div class="lib">
+      <span class="lab">Library</span>
+      <input id="lib-path" value="crate" aria-label="Music folder">
+      <button id="browse">Browse</button>
+      <button id="load">Load</button>
+      <span class="count" id="lib-count">20 tracks</span>
+    </div>
+    <div class="top-right">
+      <div class="model">PPO <b>v2</b> / 1M / vocal</div>
+      <button id="render">Render</button>
+      <nav class="top-links">
+        <a href="http://127.0.0.1:8050/training/" target="_blank" rel="noreferrer">MLOps</a>
+        <a href="http://127.0.0.1:8050/explainer" target="_blank" rel="noreferrer">Explainer</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="shell">
+    <aside class="browser">
+      <div class="browser-head"><span>Collection</span><b>20</b></div>
+      <input id="search" placeholder="Search tracks" aria-label="Search tracks">
+      <div class="filters"><button class="active">All</button><button>Compatible</button><button>Cues</button></div>
+      <div class="track-list" id="track-list"></div>
+      <div class="browser-foot"><b>24 compatible pairs</b><br>Click a track to load deck A.<br><span id="browser-note">Preview data: recorded v2 transition.</span></div>
+    </aside>
+
+    <main class="decks">
+      <section class="deck a" id="deck-a">
+        <div class="deck-head">
+          <div class="deck-badge">A</div>
+          <select id="track-a" class="track-select" aria-label="Deck A track"></select>
+          <div class="deck-data"><div><div class="k">BPM</div><div class="v" id="a-bpm">86.1</div></div>
+            <div><div class="k">Key</div><div class="v" id="a-key">F min</div></div></div>
+          <select id="cue-a" class="cue-select" aria-label="Deck A cue"></select>
+          <div class="sync">Sync</div>
+        </div>
+        <div class="wave-wrap"><svg id="wave-a" viewBox="0 0 1000 220" preserveAspectRatio="none" role="img" aria-label="Deck A waveform"></svg>
+          <div class="wave-label">Blinding Lights / cue 67 / drop</div></div>
+        <div class="deck-foot"><span>Gain <b>0.0</b></span><span>Keylock <b>on</b></span><span>Loop <b>off</b></span><span>Beat <b id="a-beat">0.0</b></span></div>
+      </section>
+
+      <section class="deck b" id="deck-b">
+        <div class="deck-head">
+          <div class="deck-badge">B</div>
+          <select id="track-b" class="track-select" aria-label="Deck B track"></select>
+          <div class="deck-data"><div><div class="k">BPM</div><div class="v" id="b-bpm">86.1</div></div>
+            <div><div class="k">Key</div><div class="v" id="b-key">F# min</div></div></div>
+          <select id="cue-b" class="cue-select" aria-label="Deck B cue"></select>
+          <div class="sync">Sync</div>
+        </div>
+        <div class="wave-wrap"><svg id="wave-b" viewBox="0 0 1000 220" preserveAspectRatio="none" role="img" aria-label="Deck B waveform"></svg>
+          <div class="wave-label">The Night We Met / cue 130 / drop</div></div>
+        <div class="deck-foot"><span>Gain <b>0.0</b></span><span>Keylock <b>on</b></span><span>Loop <b>off</b></span><span>Beat <b id="b-beat">0.0</b></span></div>
+      </section>
+
+      <section class="analysis">
+        <div class="analysis-head">
+          <span>Transition / 32 beats <b id="status-text">ready / preview</b></span>
+          <span>Low <b id="low">0.104</b> / Jump <b id="jump">0.171</b> / Vocal <b id="vocal">2.66</b></span>
+        </div>
+        <svg id="chart" viewBox="0 0 1000 90" preserveAspectRatio="none" role="img" aria-label="Fader, target, level and low overlap"></svg>
+        <div class="analysis-foot">
+          <button id="play">Play</button>
+          <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Seek">
+          <span class="time" id="time">0:00 / 0:22</span>
+          <div class="comp-mini">
+            <span>Mix <b id="c-mix">6.46</b></span>
+            <span>Vocal <b id="c-vocal">2.75</b></span>
+            <span>Clash <b id="c-clash">-0.68</b></span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="mixer">
+      <div class="mixer-head"><span>Mixer</span><b id="score">14.98</b></div>
+      <div class="mixer-sub">PPO v2 / 1M steps / vocal-aware</div>
+      <div class="channels">
+        <div class="channel a">
+          <div class="ch-head"><span>Ch A</span><b id="gain-a">0%</b></div>
+          <div class="knobs">
+            <div class="eq"><div class="knob" id="eq-a0"></div><div class="knob-label">Low</div></div>
+            <div class="eq"><div class="knob" id="eq-a1"></div><div class="knob-label">Mid</div></div>
+            <div class="eq"><div class="knob" id="eq-a2"></div><div class="knob-label">High</div></div>
+          </div>
+          <div class="meter-row"><div class="vu" id="vu-a"></div></div>
+        </div>
+        <div class="channel b">
+          <div class="ch-head"><span>Ch B</span><b id="gain-b">0%</b></div>
+          <div class="knobs">
+            <div class="eq"><div class="knob" id="eq-b0"></div><div class="knob-label">Low</div></div>
+            <div class="eq"><div class="knob" id="eq-b1"></div><div class="knob-label">Mid</div></div>
+            <div class="eq"><div class="knob" id="eq-b2"></div><div class="knob-label">High</div></div>
+          </div>
+          <div class="meter-row"><div class="vu" id="vu-b"></div></div>
+        </div>
+      </div>
+      <div class="filter-row">
+        <div class="knob" id="filter-knob"></div>
+        <div class="filter-copy"><span class="k">Filter B</span><span class="v" id="filter-val">Off</span></div>
+      </div>
+      <div class="cross">
+        <div class="cross-labels"><span>A</span><span>Crossfader</span><span>B</span></div>
+        <div class="cross-rail"><i></i><div class="cross-cap" id="cross-cap"></div></div>
+      </div>
+      <div class="fx"><span>FX</span><button>Echo</button><button class="on">Loop 4</button><button>Duck</button></div>
+      <div class="vocal"><span>Vocal duck</span><b id="vocal-duck">2.66</b></div>
+      <div class="master">
+        <div class="master-head"><span>Master</span><b id="master-level">-</b></div>
+        <div class="master-vu" id="master-vu"></div>
+        <div class="master-meta"><span>Tempo 86.13</span><span>Grid 1/4</span><span>Key F# min</span></div>
+        <div class="cue-pair"><button>Cue A</button><button>Cue B</button></div>
+      </div>
+      <div class="mixer-foot">
+        <div class="switch" id="mode"><button class="active">Model</button><button>Expert</button></div>
+        <label class="best"><input type="checkbox" id="best" checked> Find best phrase cues</label>
+        <div class="note" id="note">Preview: the waveforms and score are the recorded v2 transition. Render and folder scan are live in the app.</div>
+      </div>
+    </aside>
+  </div>
+</div>
+<script src="data.js"></script>
+<script src="common.js"></script>
+<script>
+(() => {
+  const sample = MM.sample;
+  const steps = sample.steps;
+  const a = MM.trackById(sample.track_a.id);
+  const b = MM.trackById(sample.track_b.id);
+
+  MM.populateSelect(document.querySelector("#track-a"), a.id);
+  MM.populateSelect(document.querySelector("#track-b"), b.id);
+  document.querySelector("#cue-a").innerHTML = MM.cueOptions(a, sample.cue_a);
+  document.querySelector("#cue-b").innerHTML = MM.cueOptions(b, sample.cue_b);
+  document.querySelector("#lib-count").textContent = `${MM.tracks.length} tracks`;
+  document.querySelector("#track-list").innerHTML = MM.tracks.map((track, i) =>
+    `<button class="track-row ${track.id === a.id || track.id === b.id ? "current" : ""}" data-id="${track.id}">
+      <span class="idx">${String(i + 1).padStart(2, "0")}</span>
+      <span><span class="name">${track.id}</span><span class="meta">${track.bpm.toFixed(1)} / ${track.key} ${track.mode === "major" ? "maj" : "min"} / ${track.cues.length} cues</span></span>
+    </button>`).join("");
+  document.querySelectorAll(".track-row").forEach(row => row.addEventListener("click", () => {
+    const select = document.querySelector("#track-a");
+    select.value = row.dataset.id;
+    select.dispatchEvent(new Event("change"));
+    document.querySelector("#browser-note").textContent = "Pair changed. Render is live in the app; this preview replays v2.";
+  }));
+  document.querySelector("#search").addEventListener("input", e => {
+    const query = e.target.value.toLowerCase();
+    for (const row of document.querySelectorAll(".track-row")) {
+      row.style.display = row.textContent.toLowerCase().includes(query) ? "" : "none";
+    }
+  });
+
+  const setDeck = (side, track) => {
+    if (!track) return;
+    document.querySelector(`#${side}-bpm`).textContent = track.bpm.toFixed(1);
+    document.querySelector(`#${side}-key`).textContent = `${track.key} ${track.mode === "major" ? "maj" : "min"}`;
+    document.querySelector(`#cue-${side}`).innerHTML = MM.cueOptions(track, track.cues[0].beat);
+  };
+  for (const side of ["a", "b"]) {
+    document.querySelector(`#track-${side}`).addEventListener("change", e => {
+      setDeck(side, MM.trackById(e.target.value));
+      document.querySelector("#status-text").textContent = "pair changed / render in app";
+    });
+  }
+
+  const waveform = (values, id, cls) => {
+    const W = 1000, H = 220;
+    const svg = document.querySelector(id);
+    const max = Math.max(...values, 1e-6);
+    let grid = "";
+    for (let i = 0; i <= 32; i++) {
+      const x = (i / 32) * W;
+      const cls2 = i % 8 === 0 ? "phrase-line" : i % 2 === 0 ? "beat-line" : "grid-line";
+      grid += `<line class="${cls2}" x1="${x}" y1="0" x2="${x}" y2="${H}"></line>`;
+    }
+    const path = MM.wavePath(values, 0, 0, W, H, max);
+    const labels = [0, 8, 16, 24, 32].map(i =>
+      `<text class="axis" x="${(i / 32) * W + 3}" y="13">${String(i + 1).padStart(2, "0")}</text>`).join("");
+    svg.innerHTML = grid + `<path class="${cls}" d="${path}"></path>` + labels +
+      `<rect id="shade-${id.slice(-1)}" x="0" y="0" width="0" height="${H}" fill="#05080b" opacity=".55"></rect>` +
+      `<line class="playhead" id="ph-${id.slice(-1)}" x1="0" x2="0" y1="0" y2="${H}"></line>`;
+  };
+  waveform(steps.map(s => s.mix_a.reduce((x, y) => x + y, 0)), "#wave-a", "wave-a");
+  waveform(steps.map(s => s.mix_b.reduce((x, y) => x + y, 0)), "#wave-b", "wave-b");
+
+  // Analysis chart.
+  const chart = document.querySelector("#chart");
+  const W = 1000, H = 90, L = 30, R = 8, T = 8, B = 15;
+  const y = v => T + (1 - Math.max(0, Math.min(1, v))) * (H - T - B);
+  const x = t => L + (t / sample.duration) * (W - L - R);
+  let grid = "";
+  for (const v of [0, 0.5, 1]) {
+    grid += `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"></line>`;
+    grid += `<text class="axis" x="${L - 5}" y="${y(v) + 3}" text-anchor="end">${v.toFixed(1)}</text>`;
+  }
+  const maxLevel = Math.max(...steps.map(s => s.level), 1e-6);
+  chart.innerHTML = grid +
+    `<path class="chart-level" d="${MM.linePath(steps.map(s => s.level / maxLevel), L, T, W - L - R, H - T - B)}"></path>` +
+    `<path class="chart-overlap" d="${MM.linePath(steps.map(s => s.low_overlap), L, T, W - L - R, H - T - B)}"></path>` +
+    `<path class="chart-target" d="${MM.linePath(steps.map(s => s.target), L, T, W - L - R, H - T - B)}"></path>` +
+    `<path class="chart-fader" d="${MM.linePath(steps.map(s => s.fader), L, T, W - L - R, H - T - B)}"></path>` +
+    `<line class="playhead" id="chart-ph" x1="${L}" x2="${L}" y1="${T}" y2="${H - B}"></line>`;
+
+  const makeVu = id => {
+    document.querySelector(id).innerHTML = Array.from({ length: 12 }, (_, i) =>
+      `<i class="${i >= 10 ? "hot" : i >= 7 ? "warn" : ""}"></i>`).join("");
+  };
+  makeVu("#vu-a"); makeVu("#vu-b");
+  const maxA = Math.max(...steps.map(s => s.mix_a.reduce((x, y) => x + y, 0)));
+  const maxB = Math.max(...steps.map(s => s.mix_b.reduce((x, y) => x + y, 0)));
+  const masterValues = steps.map(s =>
+    s.mix_a.reduce((x, y) => x + y, 0) + s.mix_b.reduce((x, y) => x + y, 0));
+  const maxMaster = Math.max(...masterValues, 1e-6);
+  document.querySelector("#master-vu").innerHTML =
+    Array.from({ length: 24 }, (_, i) =>
+      `<i class="${i >= 20 ? "hot" : i >= 14 ? "warn" : ""}"></i>`).join("");
+  const setKnob = (id, v) => {
+    const el = document.querySelector(id);
+    if (el) el.style.transform = `rotate(${(-135 + v * 270).toFixed(1)}deg)`;
+  };
+  const setVu = (id, level, max) => {
+    const bars = document.querySelectorAll(`${id} i`);
+    const on = Math.round(Math.min(1, level / max) * 12);
+    bars.forEach((bar, i) => bar.classList.toggle("on", i < on));
+  };
+  const update = (step, t) => {
+    document.querySelector("#cross-cap").style.left = `${step.fader * 100}%`;
+    setKnob("#eq-a0", step.eq_a[0]); setKnob("#eq-a1", step.eq_a[1]); setKnob("#eq-a2", step.eq_a[2]);
+    setKnob("#eq-b0", step.eq_b[0]); setKnob("#eq-b1", step.eq_b[1]); setKnob("#eq-b2", step.eq_b[2]);
+    setKnob("#filter-knob", (step.filter + 1) / 2);
+    document.querySelector("#filter-val").textContent = step.filter < -0.03 ? `Low-pass ${Math.round(-step.filter * 100)}%` : step.filter > 0.03 ? `High-pass ${Math.round(step.filter * 100)}%` : "Off";
+    const levelA = step.mix_a.reduce((x, y) => x + y, 0);
+    const levelB = step.mix_b.reduce((x, y) => x + y, 0);
+    setVu("#vu-a", levelA, maxA);
+    setVu("#vu-b", levelB, maxB);
+    const masterLevel = Math.min(1, (levelA + levelB) / maxMaster);
+    document.querySelector("#master-level").textContent = `${Math.round(masterLevel * 100)}%`;
+    const masterOn = Math.round(masterLevel * 24);
+    document.querySelectorAll("#master-vu i").forEach((bar, i) =>
+      bar.classList.toggle("on", i < masterOn));
+    document.querySelector("#gain-a").textContent = `${Math.round(step.gain_a * 100)}%`;
+    document.querySelector("#gain-b").textContent = `${Math.round(step.gain_b * 100)}%`;
+    document.querySelector("#a-beat").textContent = step.beat_a.toFixed(1);
+    document.querySelector("#b-beat").textContent = step.beat_b.toFixed(1);
+    const progress = Math.min(1, t / sample.duration);
+    for (const side of ["a", "b"]) {
+      const shade = document.querySelector(`#shade-${side}`);
+      const ph = document.querySelector(`#ph-${side}`);
+      if (shade) shade.setAttribute("width", (1000 * (1 - progress)).toFixed(1)),
+        shade.setAttribute("x", (1000 * progress).toFixed(1));
+      if (ph) { ph.setAttribute("x1", 1000 * progress); ph.setAttribute("x2", 1000 * progress); }
+    }
+    const cph = document.querySelector("#chart-ph");
+    if (cph) {
+      const px = L + (Math.min(t, sample.duration) / sample.duration) * (W - L - R);
+      cph.setAttribute("x1", px); cph.setAttribute("x2", px);
+    }
+  };
+  MM.bind({
+    playButton: document.querySelector("#play"),
+    seekInput: document.querySelector("#seek"),
+    timeLabel: document.querySelector("#time"),
+    onFrame: update,
+  });
+
+  document.querySelector("#low").textContent = sample.mean_low_overlap.toFixed(3);
+  document.querySelector("#jump").textContent = sample.mean_level_jump.toFixed(3);
+  document.querySelector("#vocal").textContent = (sample.components.vocal_space || 0).toFixed(2);
+  document.querySelector("#vocal-duck").textContent = (sample.components.vocal_space || 0).toFixed(2);
+  document.querySelector("#c-mix").textContent = (sample.components.mix_quality || 0).toFixed(2);
+  document.querySelector("#c-vocal").textContent = (sample.components.vocal_space || 0).toFixed(2);
+  document.querySelector("#c-clash").textContent = (sample.components.vocal_clash || 0).toFixed(2);
+  document.querySelector("#score").textContent = sample.reward.toFixed(2);
+
+  document.querySelector("#browse").addEventListener("click", () => {
+    document.querySelector("#status-text").textContent = "browse in app";
+  });
+  document.querySelector("#load").addEventListener("click", () => {
+    document.querySelector("#status-text").textContent = "folder scan in app";
+  });
+  document.querySelector("#render").addEventListener("click", () => {
+    document.querySelector("#status-text").textContent = "v2 sample / live render in app";
+  });
+  const mode = document.querySelectorAll("#mode button");
+  mode.forEach(button => button.addEventListener("click", () => {
+    mode.forEach(item => item.classList.toggle("active", item === button));
+    document.querySelector("#status-text").textContent = `${button.textContent.toLowerCase()} selected`;
+  }));
+  document.querySelector("#best").addEventListener("change", e => {
+    document.querySelector("#status-text").textContent = e.target.checked ? "best cues on" : "best cues off";
+  });
+})();
+</script>
+</body>
+</html>

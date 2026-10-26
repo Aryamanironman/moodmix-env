@@ -26,3 +26,7 @@ songs/
 # Generated demo audio; regenerate with scripts/make_demo_library.py
 data/demo/*.wav
 
+# Local design references and the pre-redesign UI backup
+design-demos/refs/
+web_v1/index_v1.html
+

@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MoodMix - Printed Scorecard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anybody:wdth,wght@50..150,100..900&family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#efe2c2; --ink:#111111; --red:#c9342a; --red-bright:#e23a2e;
+    --blue:#1b4dd8; --yellow:#f4d03f; --gray:#5f5b54; --line:#bfbbb0;
+    --red-dark:#a82a21;
+    --display:"Anybody",sans-serif; --black:"Archivo Black",sans-serif;
+    --mono:"IBM Plex Mono",monospace; --sans:"IBM Plex Sans",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+    font-size:14px;line-height:1.45;
+    background-image:radial-gradient(#00000009 0.7px,transparent 0.7px);
+    background-size:5px 5px}
+  .sheet{max-width:1380px;margin:0 auto;padding:26px 30px 54px}
+  .masthead{display:flex;justify-content:space-between;align-items:baseline;
+    gap:16px;border-bottom:3px solid var(--ink);padding-bottom:8px;flex-wrap:wrap}
+  .brand{font-family:var(--display);font-weight:900;font-variation-settings:"wdth" 115;
+    font-size:34px;letter-spacing:-.04em;line-height:1}
+  .issue{font-family:var(--mono);font-size:12px;letter-spacing:.06em;
+    text-transform:uppercase}
+  .mast-links{display:flex;gap:14px;font-family:var(--mono);font-size:12px}
+  .mast-links a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--ink)}
+  .mast-links a:hover{color:var(--red);border-color:var(--red)}
+
+  .topline{display:flex;justify-content:space-between;align-items:center;gap:14px;
+    flex-wrap:wrap;padding:9px 0;border-bottom:1px solid var(--line)}
+  .lib{display:flex;align-items:center;gap:7px;min-width:0}
+  .lib .lab{font-family:var(--mono);font-size:12px;text-transform:uppercase;
+    letter-spacing:.05em}
+  .lib input{background:transparent;border:0;border-bottom:1px solid var(--ink);
+    color:var(--ink);font-family:var(--mono);font-size:13px;padding:3px 2px;
+    min-width:140px;max-width:250px;outline:none}
+  .lib button{background:transparent;border:1px solid var(--ink);color:var(--ink);
+    font-family:var(--mono);font-size:12px;padding:4px 7px;cursor:pointer}
+  .lib button:hover{background:var(--ink);color:var(--paper)}
+  .lib .count{font-family:var(--mono);font-size:12px;color:var(--gray)}
+  .model{font-family:var(--mono);font-size:12px;color:var(--gray);
+    text-transform:uppercase;letter-spacing:.05em}
+  .model b{color:var(--ink);font-weight:500}
+
+  .hero{display:grid;grid-template-columns:1.15fr .85fr;gap:26px;
+    padding:16px 0 18px;border-bottom:1px solid var(--ink);align-items:end}
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.08em;
+    text-transform:uppercase;margin-bottom:4px}
+  .score-block{position:relative;min-height:300px;padding-top:2px}
+  .big-number{position:relative;height:clamp(104px,17vw,235px);margin-left:-4px}
+  .num{position:absolute;left:0;top:0;display:block;
+    font-family:var(--display);font-weight:900;font-variation-settings:"wdth" 108;
+    font-size:clamp(96px,17vw,235px);line-height:.78;letter-spacing:-.065em;
+    background:repeating-linear-gradient(0deg,var(--red-bright) 0 10px,transparent 10px 12px);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    -webkit-text-fill-color:transparent;white-space:nowrap}
+  .num.blue{background:repeating-linear-gradient(0deg,var(--blue) 0 10px,transparent 10px 12px);
+    transform:translate(5px,4px);z-index:-1}
+  .hero-meta{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);
+    font-size:13px;margin-top:8px;border-top:1px solid var(--line);padding-top:7px}
+  .hero-meta b{font-weight:500}
+  .yellow-note{position:absolute;right:18px;top:4px;background:var(--yellow);
+    transform:rotate(-6deg);padding:7px 10px;font-family:var(--mono);font-size:13px;
+    font-weight:600;box-shadow:2px 2px 0 #00000022}
+  .black-note{position:absolute;right:0;bottom:40px;background:var(--ink);
+    color:var(--paper);transform:rotate(2.5deg);padding:8px 10px;
+    font-family:var(--mono);font-size:12px;line-height:1.5;letter-spacing:.03em}
+  .black-note b{color:var(--yellow);font-weight:600}
+  .red-dot{position:absolute;left:44%;right:auto;bottom:58px;width:58px;height:58px;
+    border-radius:50%;background:var(--red-bright)}
+  .hero-wave{position:absolute;left:0;bottom:16px;width:220px;height:38px}
+  .hero-wave path{fill:none;stroke:var(--ink);stroke-width:5;stroke-linecap:round}
+
+  .hero-tracks{display:flex;flex-direction:column;gap:12px;position:relative}
+  .track-block{border-top:2px solid var(--ink);padding-top:7px;position:relative}
+  .track-block .side{position:absolute;right:0;top:8px;width:26px;height:26px;
+    display:flex;align-items:center;justify-content:center;font-family:var(--mono);
+    font-size:13px;color:var(--paper);background:var(--ink)}
+  .track-block.b .side{background:var(--blue)}
+  .track-block h2{font-family:var(--display);font-weight:800;
+    font-variation-settings:"wdth" 105;font-size:clamp(26px,3.2vw,42px);
+    line-height:.95;letter-spacing:-.03em;margin:0 34px 4px 0;text-wrap:balance}
+  .track-block .meta{font-family:var(--mono);font-size:13px;color:var(--gray)}
+  .track-block .note{font-size:14px;margin-top:3px;max-width:40ch}
+  .slash{height:2px;background:var(--red);width:64%;transform:rotate(-3deg);
+    margin:2px 0 0;position:relative}
+  .slash:after{content:"";position:absolute;right:-16px;top:-3px;width:8px;height:8px;
+    background:var(--red);border-radius:50%}
+
+  .mid{display:grid;grid-template-columns:1.35fr .8fr .85fr;gap:20px;
+    padding:16px 0 18px;border-bottom:1px solid var(--ink)}
+  .panel h3{font-family:var(--mono);font-size:12px;letter-spacing:.07em;
+    text-transform:uppercase;margin:0 0 6px;border-bottom:1px solid var(--line);
+    padding-bottom:4px}
+  .chart-panel svg{width:100%;height:auto;display:block}
+  .legend{display:flex;gap:13px;flex-wrap:wrap;font-family:var(--mono);
+    font-size:12px;color:var(--gray);margin-top:5px}
+  .legend i{display:inline-block;width:13px;height:2px;vertical-align:middle;
+    margin-right:4px}
+  .grid-line{stroke:#d3c19c;stroke-width:1}
+  .axis{fill:#5d594f;font:15px var(--mono)}
+  .line-fader{fill:none;stroke:var(--ink);stroke-width:2}
+  .line-target{fill:none;stroke:#8d887e;stroke-width:1;stroke-dasharray:4 4}
+  .line-level{fill:none;stroke:var(--blue);stroke-width:1.4}
+  .line-overlap{fill:none;stroke:var(--red);stroke-width:1.4}
+  .playhead{stroke:#111;stroke-width:1;opacity:.35}
+
+  .moves{list-style:none;padding:0;margin:0}
+  .moves li{border-bottom:1px solid var(--line);padding:6px 0;font-size:14px;
+    line-height:1.4}
+  .moves b{font-family:var(--mono);font-size:13px;font-weight:600}
+  .moves span{font-family:var(--mono);font-size:12px;color:var(--gray)}
+  .stamp{margin-top:9px;border:2px solid var(--red);color:var(--red);
+    display:inline-block;padding:5px 8px;font-family:var(--mono);font-size:13px;
+    transform:rotate(-2deg);letter-spacing:.06em}
+  .score-table{display:flex;flex-direction:column;gap:3px}
+  .score-row{display:grid;grid-template-columns:1fr 54px;gap:7px;align-items:center;
+    font-family:var(--mono);font-size:12px;border-bottom:1px solid #d3c19c;padding:3px 0}
+  .score-row .name{color:var(--gray);white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis}
+  .score-row .val{text-align:right;font-size:13px}
+  .score-row .bar{grid-column:1 / -1;height:3px;background:#ddcba4}
+  .score-row .bar i{display:block;height:100%;background:var(--red)}
+  .score-row.neg .val{color:var(--red)}
+
+  .console{background:var(--ink);color:var(--paper);margin-top:18px;
+    padding:12px 14px;display:grid;grid-template-columns:1.1fr 1.1fr 1.35fr auto;
+    gap:14px;align-items:center}
+  .console .field{display:flex;flex-direction:column;gap:4px;min-width:0}
+  .console .lab{font-family:var(--mono);font-size:12px;letter-spacing:.06em;
+    text-transform:uppercase;color:#b9b4a8}
+  .console select{background:#1d1d1d;color:var(--paper);border:1px solid #4a4a45;
+    font-family:var(--mono);font-size:13px;padding:6px;border-radius:0;min-width:0;
+    width:100%;outline:none}
+  .console select:focus{border-color:var(--yellow)}
+  .transport{display:flex;align-items:center;gap:8px}
+  #play{background:var(--red-dark);border:0;color:var(--paper);
+    font-family:var(--mono);font-size:13px;font-weight:600;padding:8px 11px;
+    cursor:pointer;min-width:58px}
+  #play:hover{background:var(--yellow);color:var(--ink)}
+  #seek{flex:1;min-width:0;accent-color:var(--red-bright)}
+  .time{font-family:var(--mono);font-size:12px;color:#b9b4a8;white-space:nowrap}
+  .mix-controls{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:10px;align-items:end}
+  .knob-bank{display:flex;gap:7px}
+  .knob-wrap{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .knob{width:28px;height:28px;border-radius:50%;background:var(--paper);
+    border:1px solid #8f8b80;position:relative}
+  .knob:after{content:"";position:absolute;left:50%;top:3px;width:1px;height:9px;
+    background:var(--ink);transform:translateX(-50%);transform-origin:50% 11px}
+  .knob-label{font-family:var(--mono);font-size:12px;color:#b9b4a8}
+  .filter-bank{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .cross{display:flex;flex-direction:column;gap:3px}
+  .cross .labels{display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:12px;color:#b9b4a8}
+  .cross .rail{position:relative;height:22px;display:flex;align-items:center}
+  .cross .rail i{position:absolute;left:0;right:0;height:3px;background:#3c3c38;
+    border:1px solid #5c5c55}
+  .cross .cap{position:absolute;left:0;top:3px;width:24px;height:15px;
+    transform:translateX(-50%);background:var(--red-bright);border:1px solid #7e1e18}
+  .console-side{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+  .console-side button{background:transparent;border:1px solid #5c5c55;color:var(--paper);
+    font-family:var(--mono);font-size:12px;padding:6px 8px;cursor:pointer}
+  .console-side button:hover{border-color:var(--yellow);color:var(--yellow)}
+  #render{background:var(--yellow);border-color:var(--yellow);color:var(--ink);
+    font-weight:600}
+  .switch{display:grid;grid-template-columns:1fr 1fr;border:1px solid #5c5c55}
+  .switch button{background:transparent;border:0;color:#b9b4a8;font-family:var(--mono);
+    font-size:12px;padding:5px 4px;cursor:pointer}
+  .switch button.active{background:var(--red-dark);color:var(--paper)}
+  .best{display:flex;align-items:center;gap:5px;font-family:var(--mono);
+    font-size:12px;color:#b9b4a8}
+  .best input{accent-color:var(--yellow)}
+  .console-status{grid-column:1 / -1;font-family:var(--mono);font-size:12px;
+    color:#b9b4a8;border-top:1px solid #3c3c38;padding-top:5px;letter-spacing:.03em}
+
+  .liner{padding:18px 0 0}
+  .liner-head{display:flex;justify-content:space-between;align-items:baseline;
+    gap:12px;border-bottom:2px solid var(--ink);padding-bottom:5px;margin-bottom:8px}
+  .liner-head h3{font-family:var(--display);font-weight:800;
+    font-variation-settings:"wdth" 105;font-size:22px;margin:0;letter-spacing:-.02em}
+  .liner-head span{font-family:var(--mono);font-size:12px;color:var(--gray)}
+  .tracklist{display:grid;grid-template-columns:repeat(3,1fr);gap:0 20px}
+  .track{display:grid;grid-template-columns:26px 1fr;gap:5px;align-items:baseline;
+    border-bottom:1px solid #d3c19c;padding:5px 0;background:transparent;border-left:0;
+    border-right:0;border-top:0;text-align:left;cursor:pointer;color:var(--ink)}
+  .track:hover{background:#e4d3ac}
+  .track.current{color:var(--red)}
+  .track .idx{font-family:var(--mono);font-size:12px;color:var(--gray)}
+  .track .title{font-family:var(--sans);font-size:13px;font-weight:500;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .track .sub{grid-column:2;font-family:var(--mono);font-size:12px;color:var(--gray);
+    margin-top:-2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .credits{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    border-top:1px solid var(--line);margin-top:12px;padding-top:7px;
+    font-family:var(--mono);font-size:12px;color:var(--gray)}
+  .credits b{color:var(--ink);font-weight:500}
+
+  @media (max-width:1050px){
+    .sheet{padding:22px 20px 44px}
+    .mid{grid-template-columns:1fr 1fr}
+    .mid .score-panel{grid-column:1 / -1}
+    .console{grid-template-columns:1fr 1fr}
+    .console-side{grid-column:1 / -1;flex-direction:row;flex-wrap:wrap}
+    .console-side button{flex:1}
+    .switch{flex:1}
+    .tracklist{grid-template-columns:1fr 1fr}
+  }
+  @media (max-width:760px){
+    .sheet{padding:16px 14px 36px}
+    .brand{font-size:28px}
+    .issue{font-size:14px}
+    .hero{grid-template-columns:1fr;gap:12px}
+    .score-block{min-height:0;padding-bottom:10px}
+    .yellow-note{right:0;top:0;font-size:12px}
+    .black-note{right:0;bottom:8px;font-size:14px}
+    .red-dot{display:none}
+    .hero-wave{width:150px;bottom:6px}
+    .hero-meta{font-size:12px;gap:10px}
+    .mid{grid-template-columns:1fr;gap:12px}
+    .mid .score-panel{grid-column:auto}
+    .console{grid-template-columns:1fr;padding:10px}
+    .mix-controls{grid-template-columns:1fr 1fr}
+    .cross{grid-column:1 / -1}
+    .console-status{grid-column:auto}
+    .tracklist{grid-template-columns:1fr}
+    .track .title{font-size:13px}
+    .masthead{gap:6px}
+    .lib{flex-wrap:wrap}
+    .lib input{flex:1 1 100%;max-width:none;order:5}
+    .lib .count{order:6}
+    .mast-links{gap:10px}
+  }
+  /* Readability floor and stronger print contrast. */
+  .issue,.model,.kicker,.black-note,.moves span,.console-status,.credits{font-size:14px}
+  .credits,.console-status,.black-note,.moves span{line-height:1.45}
+  .track .title{font-size:14px}
+  .track .sub,.hero-meta,.track-block .meta,.lib input{font-size:13px}
+  .score-row .val{font-size:14px}
+  .console-status{color:#c9c4b8}
+  .credits{color:#5f5b54}
+  .panel h3,.liner-head span{font-size:14px}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header class="masthead">
+    <div class="brand">MoodMix</div>
+    <div class="issue">Live blend scorecard / No. 07 / 26 Oct 2026</div>
+    <nav class="mast-links">
+      <a href="http://127.0.0.1:8050/training/" target="_blank" rel="noreferrer">MLOps</a>
+      <a href="http://127.0.0.1:8050/explainer" target="_blank" rel="noreferrer">Explainer</a>
+    </nav>
+  </header>
+
+  <div class="topline">
+    <div class="lib">
+      <span class="lab">Library</span>
+      <input id="lib-path" value="crate" aria-label="Music folder">
+      <button id="browse">Browse</button>
+      <button id="load">Load</button>
+      <span class="count" id="lib-count">20 tracks</span>
+    </div>
+    <div class="model">PPO <b>v2</b> / 1M steps / vocal-aware</div>
+  </div>
+
+  <section class="hero">
+    <div class="score-block">
+      <div class="kicker">Transition score / recorded v2</div>
+      <div class="big-number"><span class="num blue" id="score-blue">14.98</span><span class="num red" id="score-red">14.98</span></div>
+      <div class="hero-meta">
+        <span><b>32</b> beats</span><span><b>22.4</b> s</span>
+        <span>low <b id="low">0.089</b></span><span>jump <b id="jump">0.171</b></span>
+        <span>vocal <b id="vocal">2.75</b></span>
+      </div>
+      <div class="yellow-note">86.1 BPM / SYNC</div>
+      <div class="black-note">LOW BAND HANDOVER<br><b>0.089</b> OVERLAP / VOCAL DUCK</div>
+      <div class="red-dot"></div>
+      <svg class="hero-wave" viewBox="0 0 220 38" aria-hidden="true">
+        <path d="M4 28 C26 8,40 34,62 18 S96 32,120 14 S156 30,178 16 S206 24,216 12"/>
+      </svg>
+    </div>
+    <aside class="hero-tracks">
+      <div class="track-block a">
+        <div class="side">A</div>
+        <h2>Blinding Lights</h2>
+        <div class="meta">F minor / 86.1 BPM / cue 67 / drop</div>
+        <div class="note">Outgoing deck. Low band handed over around the middle of the blend.</div>
+      </div>
+      <div class="slash"></div>
+      <div class="track-block b">
+        <div class="side">B</div>
+        <h2>The Night We Met</h2>
+        <div class="meta">F# minor / 86.1 BPM / cue 130 / drop</div>
+        <div class="note">Incoming deck. High-pass released, vocal space opened, fader lands at 1.0.</div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="mid">
+    <div class="panel chart-panel">
+      <h3>Transition / fader vs target</h3>
+      <svg id="chart" viewBox="0 0 700 210" role="img" aria-label="Fader, target, level and low overlap"></svg>
+      <div class="legend">
+        <span><i style="background:var(--ink)"></i>fader</span>
+        <span><i style="background:#8d887e"></i>target</span>
+        <span><i style="background:var(--blue)"></i>level</span>
+        <span><i style="background:var(--red)"></i>low overlap</span>
+      </div>
+    </div>
+    <div class="panel moves-panel">
+      <h3>What the model did</h3>
+      <ul class="moves" id="moves"></ul>
+      <div class="stamp">CUE 67 -> 130</div>
+    </div>
+    <div class="panel score-panel">
+      <h3>Score breakdown</h3>
+      <div class="score-table" id="components"></div>
+    </div>
+  </section>
+
+  <section class="console">
+    <div class="field">
+      <div class="lab">Deck A</div>
+      <select id="track-a" aria-label="Deck A track"></select>
+      <div class="lab" style="margin-top:2px">Cue</div>
+      <select id="cue-a" aria-label="Deck A cue"></select>
+    </div>
+    <div class="field">
+      <div class="lab">Deck B</div>
+      <select id="track-b" aria-label="Deck B track"></select>
+      <div class="lab" style="margin-top:2px">Cue</div>
+      <select id="cue-b" aria-label="Deck B cue"></select>
+    </div>
+    <div class="field">
+      <div class="lab">Transport</div>
+      <div class="transport">
+        <button id="play">Play</button>
+        <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Seek">
+        <span class="time" id="time">0:00 / 0:22</span>
+      </div>
+      <div class="mix-controls" style="margin-top:6px">
+        <div class="knob-bank" id="eq-a">
+          <div class="knob-wrap"><div class="knob"></div><div class="knob-label">A low</div></div>
+          <div class="knob-wrap"><div class="knob"></div><div class="knob-label">A mid</div></div>
+          <div class="knob-wrap"><div class="knob"></div><div class="knob-label">A high</div></div>
+        </div>
+        <div class="knob-bank" id="eq-b">
+          <div class="knob-wrap"><div class="knob"></div><div class="knob-label">B low</div></div>
+          <div class="knob-wrap"><div class="knob"></div><div class="knob-label">B mid</div></div>
+          <div class="knob-wrap"><div class="knob"></div><div class="knob-label">B high</div></div>
+        </div>
+        <div class="cross">
+          <div class="labels"><span>A</span><span>Crossfader</span><span>B</span></div>
+          <div class="rail"><i></i><div class="cap" id="cross-cap"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="console-side">
+      <button id="render">Render transition</button>
+      <div class="switch" id="mode"><button class="active">Model</button><button>Expert</button></div>
+      <label class="best"><input type="checkbox" id="best" checked> Best cues</label>
+    </div>
+    <div class="console-status" id="status">Preview / recorded v2 transition. Folder scan and render are live in the app.</div>
+  </section>
+
+  <section class="liner">
+    <div class="liner-head">
+      <h3>Liner notes / crate</h3>
+      <span>Click a track to load deck A / 20 tracks</span>
+    </div>
+    <div class="tracklist" id="tracklist"></div>
+    <div class="credits">
+      <span><b>Source</b> recorded v2 transition / 800k PPO baseline and 1M vocal-aware run</span>
+      <span><b>Audio</b> local only / 44.1 kHz</span>
+      <span><b>Links</b> /training / /explainer</span>
+    </div>
+  </section>
+</div>
+<script src="data.js"></script>
+<script src="common.js"></script>
+<script>
+(() => {
+  const sample = MM.sample;
+  const steps = sample.steps;
+  const a = MM.trackById(sample.track_a.id);
+  const b = MM.trackById(sample.track_b.id);
+
+  document.querySelector("#score-red").textContent = sample.reward.toFixed(2);
+  document.querySelector("#score-blue").textContent = sample.reward.toFixed(2);
+  document.querySelector("#low").textContent = sample.mean_low_overlap.toFixed(3);
+  document.querySelector("#jump").textContent = sample.mean_level_jump.toFixed(3);
+  document.querySelector("#vocal").textContent = (sample.components.vocal_space || 0).toFixed(2);
+  document.querySelector("#lib-count").textContent = `${MM.tracks.length} tracks`;
+
+  MM.populateSelect(document.querySelector("#track-a"), a.id);
+  MM.populateSelect(document.querySelector("#track-b"), b.id);
+  document.querySelector("#cue-a").innerHTML = MM.cueOptions(a, sample.cue_a);
+  document.querySelector("#cue-b").innerHTML = MM.cueOptions(b, sample.cue_b);
+
+  // Real events from the trace.
+  const faderLand = steps.findIndex(s => s.fader >= 0.95);
+  const filterBeats = steps.filter(s => Math.abs(s.filter) > 0.03).length;
+  const eqLow = steps.reduce((min, s) => Math.min(min, s.eq_a[0], s.eq_b[0]), 1);
+  const maxFilter = Math.max(...steps.map(s => s.filter));
+  const moves = [
+    `<b>Fader</b> reaches deck B at beat ${faderLand >= 0 ? faderLand + 1 : "-"} of 32. <span>One arc, no reversals.</span>`,
+    `<b>Low band</b> mean overlap ${sample.mean_low_overlap.toFixed(3)}. <span>Only one kick owns the low end through the blend.</span>`,
+    `<b>EQ + filter</b> craft ${(sample.components.eq_craft || 0).toFixed(2)} / ${(sample.components.filter_craft || 0).toFixed(2)}. <span>Separation and a high-pass release the model shaped.</span>`,
+    `<b>Filter</b> engaged on ${filterBeats} beats, peak ${maxFilter.toFixed(2)}. <span>High-pass release into the drop.</span>`,
+    `<b>Vocal</b> space ${(sample.components.vocal_space || 0).toFixed(2)}, clash ${(sample.components.vocal_clash || 0).toFixed(2)}. <span>Mid and high ducking.</span>`,
+  ];
+  document.querySelector("#moves").innerHTML = moves.map(item => `<li>${item}</li>`).join("");
+
+  // Score table.
+  const comps = Object.entries(sample.components)
+    .filter(([, value]) => Math.abs(value) > 0.001)
+    .sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 9);
+  const maxComp = Math.max(...comps.map(([, value]) => Math.abs(value)), 0.01);
+  document.querySelector("#components").innerHTML = comps.map(([name, value]) =>
+    `<div class="score-row ${value < 0 ? "neg" : ""}"><span class="name">${name.replaceAll("_", " ")}</span><span class="val">${value >= 0 ? "+" : ""}${value.toFixed(2)}</span><div class="bar"><i style="width:${Math.abs(value) / maxComp * 100}%"></i></div></div>`
+  ).join("");
+
+  // Chart.
+  const chart = document.querySelector("#chart");
+  const W = 700, H = 210, L = 56, R = 10, T = 12, B = 22;
+  const y = v => T + (1 - Math.max(0, Math.min(1, v))) * (H - T - B);
+  const x = t => L + (t / sample.duration) * (W - L - R);
+  let grid = "";
+  for (const v of [0, 0.25, 0.5, 0.75, 1]) {
+    grid += `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"></line>`;
+    grid += `<text class="axis" x="${L - 5}" y="${y(v) + 3}" text-anchor="end">${v.toFixed(2)}</text>`;
+  }
+  for (const [i, t] of [0, sample.duration / 2, sample.duration].entries()) {
+    grid += `<text class="axis" x="${x(t)}" y="${H - 5}" text-anchor="${i === 0 ? "start" : i === 2 ? "end" : "middle"}">${t.toFixed(1)}s</text>`;
+  }
+  const maxLevel = Math.max(...steps.map(s => s.level), 1e-6);
+  chart.innerHTML = grid +
+    `<path class="line-level" d="${MM.linePath(steps.map(s => s.level / maxLevel), L, T, W - L - R, H - T - B)}"></path>` +
+    `<path class="line-overlap" d="${MM.linePath(steps.map(s => s.low_overlap), L, T, W - L - R, H - T - B)}"></path>` +
+    `<path class="line-target" d="${MM.linePath(steps.map(s => s.target), L, T, W - L - R, H - T - B)}"></path>` +
+    `<path class="line-fader" d="${MM.linePath(steps.map(s => s.fader), L, T, W - L - R, H - T - B)}"></path>` +
+    `<line class="playhead" id="playhead" x1="${L}" x2="${L}" y1="${T}" y2="${H - B}"></line>`;
+
+  // Tracklist.
+  document.querySelector("#tracklist").innerHTML = MM.tracks.map((track, i) => {
+    const mode = track.mode === "major" ? "maj" : "min";
+    const current = track.id === a.id || track.id === b.id ? "current" : "";
+    return `<button class="track ${current}" data-id="${track.id}" title="${track.id}"><span class="idx">${String(i + 1).padStart(2, "0")}</span><span class="title">${track.id}</span><span class="sub">${track.bpm.toFixed(1)} BPM / ${track.key} ${mode}</span></button>`;
+  }).join("");
+  for (const row of document.querySelectorAll(".track")) {
+    row.addEventListener("click", () => {
+      document.querySelector("#track-a").value = row.dataset.id;
+      document.querySelector("#track-a").dispatchEvent(new Event("change"));
+      document.querySelector("#status").textContent = "Crate pick / render in app";
+    });
+  }
+  for (const side of ["a", "b"]) {
+    document.querySelector(`#track-${side}`).addEventListener("change", e => {
+      const track = MM.trackById(e.target.value);
+      if (!track) return;
+      document.querySelector(`#cue-${side}`).innerHTML = MM.cueOptions(track, track.cues[0].beat);
+      document.querySelector("#status").textContent = "Pair changed / render in app";
+    });
+  }
+
+  const setKnobs = (bank, values) => {
+    const knobs = document.querySelectorAll(`${bank} .knob`);
+    knobs.forEach((knob, i) => {
+      if (knob) knob.style.transform = `rotate(${(-135 + values[i] * 270).toFixed(1)}deg)`;
+    });
+  };
+  const update = (step, t) => {
+    document.querySelector("#cross-cap").style.left = `${step.fader * 100}%`;
+    setKnobs("#eq-a", step.eq_a);
+    setKnobs("#eq-b", step.eq_b);
+    const ph = document.querySelector("#playhead");
+    if (ph) {
+      const px = x(Math.min(t, sample.duration));
+      ph.setAttribute("x1", px); ph.setAttribute("x2", px);
+    }
+  };
+  MM.bind({
+    playButton: document.querySelector("#play"),
+    seekInput: document.querySelector("#seek"),
+    timeLabel: document.querySelector("#time"),
+    onFrame: update,
+  });
+
+  document.querySelector("#browse").addEventListener("click", () => {
+    document.querySelector("#status").textContent = "Browse is wired in the local app";
+  });
+  document.querySelector("#load").addEventListener("click", () => {
+    document.querySelector("#status").textContent = "Folder scan is wired in the local app";
+  });
+  document.querySelector("#render").addEventListener("click", () => {
+    document.querySelector("#status").textContent = "Recorded v2 sample / live render in app";
+  });
+  const mode = document.querySelectorAll("#mode button");
+  mode.forEach(button => button.addEventListener("click", () => {
+    mode.forEach(item => item.classList.toggle("active", item === button));
+    document.querySelector("#status").textContent = `${button.textContent} selected / preview`;
+  }));
+  document.querySelector("#best").addEventListener("change", e => {
+    document.querySelector("#status").textContent = e.target.checked ? "Best cues on" : "Best cues off";
+  });
+})();
+</script>
+</body>
+</html>
