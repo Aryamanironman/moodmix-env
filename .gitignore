@@ -25,3 +25,6 @@ songs/
 
 # Generated demo audio; regenerate with scripts/make_demo_library.py
 data/demo/*.wav
+
+# Vercel local link
+.vercel/

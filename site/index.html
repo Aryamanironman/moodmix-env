@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MoodMix DJSet-v1</title>
+<style>
+  :root {
+    --bg: #0a0d12;
+    --panel: #111821;
+    --panel-2: #0d131b;
+    --line: #222d3b;
+    --fg: #e8eef6;
+    --muted: #8a97a8;
+    --accent: #f0a13a;
+    --cyan: #57c7e6;
+    --good: #5fd68c;
+    --bad: #f07171;
+    --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: radial-gradient(1100px 560px at 50% -12%, #17222f 0%, var(--bg) 62%), var(--bg);
+    color: var(--fg); font-family: var(--sans); line-height: 1.55; min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .page { max-width: 1180px; margin: 0 auto; padding: 22px 20px 54px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 26px; }
+  .brand { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+  .brand b { color: var(--fg); font-weight: 600; }
+  .top-links { display: flex; gap: 16px; font-family: var(--mono); font-size: 0.74rem; color: var(--muted); }
+  .hero { display: grid; grid-template-columns: 1.4fr 1fr; gap: 26px; align-items: end; margin-bottom: 24px; }
+  h1 { font-size: clamp(2.1rem, 5vw, 3.4rem); line-height: 1.04; letter-spacing: -0.03em; margin: 0 0 12px; font-weight: 650; text-wrap: balance; }
+  .hero p { color: var(--muted); max-width: 58ch; margin: 0; }
+  .hero .tag { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 11px 13px; }
+  .stat .v { font-family: var(--mono); font-size: 1.3rem; line-height: 1.1; }
+  .stat .k { font-size: 0.68rem; color: var(--muted); margin-top: 4px; }
+  .panel { background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%); border: 1px solid var(--line); border-radius: 10px; }
+  .section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 28px 0 10px; }
+  .section-head h2 { font-size: 1.05rem; margin: 0; font-weight: 600; }
+  .section-head span { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .chip {
+    background: var(--panel); border: 1px solid var(--line); color: var(--muted);
+    border-radius: 7px; padding: 8px 11px; cursor: pointer; font: 0.78rem var(--sans); text-align: left;
+  }
+  .chip b { display: block; color: var(--fg); font-weight: 600; }
+  .chip small { font-family: var(--mono); font-size: 0.62rem; color: var(--muted); }
+  .chip.active { border-color: var(--accent); background: #1a170f; }
+  .chip.active small { color: var(--accent); }
+  .deck-grid { display: grid; grid-template-columns: 1fr 1.1fr 1fr; gap: 12px; }
+  .deck { padding: 14px 15px; }
+  .deck-letter { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.16em; color: var(--accent); }
+  .deck-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .deck-live { font-family: var(--mono); font-size: 0.66rem; color: var(--muted); }
+  .deck-title { font-size: 1.02rem; font-weight: 600; margin-bottom: 8px; }
+  .kv-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 9px; }
+  .kv .k { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .kv .v { font-size: 0.8rem; font-weight: 600; }
+  .cue { font-family: var(--mono); font-size: 0.66rem; color: var(--muted); line-height: 1.5; }
+  .mid-card { padding: 14px 15px; display: flex; flex-direction: column; justify-content: center; gap: 9px; }
+  .mid-card .label { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .mid-card .big { font-family: var(--mono); font-size: 1.5rem; }
+  .mid-card .note { font-size: 0.74rem; color: var(--muted); }
+  .transport { display: flex; align-items: center; gap: 12px; padding: 14px 16px 4px; }
+  .play { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: #0a1017; color: var(--fg); cursor: pointer; }
+  .time { font-family: var(--mono); font-size: 0.74rem; color: var(--muted); min-width: 92px; }
+  input[type="range"] { accent-color: var(--accent); }
+  #seek { flex: 1; }
+  .console { padding: 8px 16px 16px; }
+  .fader-row { display: grid; grid-template-columns: 190px 1fr 190px; gap: 18px; align-items: end; margin-top: 8px; }
+  .eq-title { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .eq-meters { display: flex; gap: 7px; }
+  .meter { flex: 1; height: 96px; background: #080d13; border: 1px solid var(--line); border-radius: 4px; position: relative; overflow: hidden; }
+  .meter .fill { position: absolute; left: 0; right: 0; bottom: 0; height: 50%; background: linear-gradient(180deg, var(--accent) 0%, #7a4a13 100%); }
+  .meter .tag { position: absolute; left: 0; right: 0; bottom: 3px; text-align: center; font-family: var(--mono); font-size: 0.54rem; color: #d8b98f; }
+  .crossfader { display: flex; flex-direction: column; gap: 6px; padding-bottom: 18px; }
+  .cf-label { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 0.6rem; color: var(--muted); }
+  .rail-wrap { position: relative; height: 28px; display: flex; align-items: center; }
+  .rail { position: absolute; left: 0; right: 0; height: 6px; border-radius: 99px; background: linear-gradient(90deg, #1b2836, #2a3a4c, #1b2836); border: 1px solid var(--line); }
+  .knob { position: absolute; left: 0; width: 24px; height: 24px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffd08a, var(--accent) 55%, #8a5413); border: 1px solid #59380e; transform: translateX(-50%); }
+  .filter-row { display: grid; grid-template-columns: 120px 1fr 110px; gap: 16px; align-items: center; margin-top: 12px; }
+  .filter-name { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .filter-track { position: relative; height: 24px; display: flex; align-items: center; }
+  .filter-rail { position: absolute; left: 0; right: 0; height: 5px; border-radius: 99px; background: linear-gradient(90deg, #1d3b4a, #1b2836 50%, #4a3418); border: 1px solid var(--line); }
+  .filter-center { position: absolute; left: 50%; top: 2px; bottom: 2px; width: 1px; background: var(--muted); }
+  .filter-knob { position: absolute; left: 50%; width: 15px; height: 15px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px #57c7e680; transform: translateX(-50%); }
+  .filter-value { font-family: var(--mono); font-size: 0.7rem; color: var(--cyan); text-align: right; }
+  .chart-card { padding: 13px 15px 9px; }
+  .chart-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 2px; }
+  .chart-title { font-size: 0.84rem; font-weight: 600; }
+  .legend { display: flex; gap: 13px; flex-wrap: wrap; font-family: var(--mono); font-size: 0.62rem; color: var(--muted); }
+  .legend i { display: inline-block; width: 13px; height: 2px; vertical-align: middle; margin-right: 5px; }
+  svg#chart { width: 100%; height: auto; display: block; }
+  .grid-line { stroke: #1c2633; stroke-width: 1; }
+  .axis-text { fill: #6f7d8e; font: 10px var(--mono); }
+  .l-fader { fill: none; stroke: var(--accent); stroke-width: 2.2; }
+  .l-target { fill: none; stroke: #6f7d8e; stroke-width: 1.2; stroke-dasharray: 4 4; }
+  .l-level { fill: none; stroke: var(--cyan); stroke-width: 1.4; opacity: 0.85; }
+  .l-overlap { fill: none; stroke: var(--bad); stroke-width: 1.2; opacity: 0.8; }
+  .playhead { stroke: #fff; stroke-width: 1; opacity: 0.55; }
+  .score { display: grid; grid-template-columns: 170px 1fr 210px; gap: 20px; padding: 15px 16px; }
+  .score-total .k { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .score-total .v { font-family: var(--mono); font-size: 1.9rem; font-weight: 600; line-height: 1.1; }
+  .score-total .sub { font-family: var(--mono); font-size: 0.66rem; color: var(--muted); }
+  .comp-list { display: flex; flex-direction: column; gap: 5px; }
+  .comp { display: grid; grid-template-columns: 120px 1fr 50px; gap: 8px; align-items: center; }
+  .comp-name { font-size: 0.68rem; color: var(--muted); text-transform: capitalize; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .comp-bar { height: 6px; background: #0a1017; border-radius: 3px; overflow: hidden; }
+  .comp-bar span { display: block; height: 100%; border-radius: 3px; }
+  .comp-val { font-family: var(--mono); font-size: 0.66rem; text-align: right; }
+  .metric-list { display: flex; flex-direction: column; gap: 7px; }
+  .metric { display: flex; justify-content: space-between; gap: 10px; font-size: 0.72rem; color: var(--muted); }
+  .metric b { font-family: var(--mono); color: var(--fg); font-weight: 500; }
+  .how { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .how .panel { padding: 14px 15px; }
+  .how h3 { font-size: 0.88rem; margin: 0 0 6px; }
+  .how p { font-size: 0.78rem; color: var(--muted); margin: 0; }
+  .how code { font-family: var(--mono); font-size: 0.72rem; color: var(--cyan); }
+  .run-strip { padding: 15px 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .run-strip .v { font-family: var(--mono); font-size: 1.1rem; }
+  .run-strip .k { font-size: 0.68rem; color: var(--muted); margin-top: 3px; }
+  footer { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 12px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-family: var(--mono); font-size: 0.64rem; color: var(--muted); }
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; }
+    .deck-grid { grid-template-columns: 1fr; }
+    .fader-row { grid-template-columns: 1fr; }
+    .score { grid-template-columns: 1fr; }
+    .how, .run-strip { grid-template-columns: 1fr; }
+    .filter-row { grid-template-columns: 90px 1fr 90px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="brand"><b>MoodMix</b> / DJSet-v1</div>
+    <div class="top-links">
+      <a href="https://github.com/Aryamanironman/moodmix-env" target="_blank" rel="noreferrer">GitHub</a>
+      <span>static showcase</span>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div>
+      <div class="tag">Continuous-control DJ agent</div>
+      <h1>Two tracks, mixed like one.</h1>
+      <p>
+        A PPO agent rides an eight-control DJ surface: crossfader, three-band EQ
+        per deck, and a filter. Both decks are cued on phrase boundaries and
+        beat-warped onto the same grid, so the blend stays locked.
+      </p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v">13.65</div><div class="k">eval return, 800k PPO steps</div></div>
+      <div class="stat"><div class="v">0.85-1.00</div><div class="k">beat-hit fraction, six-song set</div></div>
+      <div class="stat"><div class="v">2.3-4.8 dB</div><div class="k">level p99 jump (250 ms RMS)</div></div>
+      <div class="stat"><div class="v">10.71</div><div class="k">hand-written expert reference</div></div>
+    </div>
+  </section>
+
+  <div class="section-head">
+    <h2>Listen</h2>
+    <span>synthesized demo crate, license-free</span>
+  </div>
+  <div class="chips" id="chips"></div>
+
+  <section class="deck-grid">
+    <div class="deck panel">
+      <div class="deck-head"><span class="deck-letter">DECK A</span><span class="deck-live" id="a-live">-</span></div>
+      <div class="deck-title" id="a-title">-</div>
+      <div class="kv-row">
+        <div class="kv"><div class="k">BPM</div><div class="v" id="a-bpm">-</div></div>
+        <div class="kv"><div class="k">Key</div><div class="v" id="a-key">-</div></div>
+        <div class="kv"><div class="k">Mood</div><div class="v" id="a-mood">-</div></div>
+      </div>
+      <div class="cue" id="a-cue">-</div>
+    </div>
+
+    <div class="mid-card panel">
+      <div class="label">Selected transition</div>
+      <div class="big" id="mid-score">-</div>
+      <div class="note" id="mid-note">-</div>
+      <div class="note" id="mid-cues">-</div>
+      <button class="chip" id="play-cta" style="text-align:center">Play the blend</button>
+    </div>
+
+    <div class="deck panel">
+      <div class="deck-head"><span class="deck-letter">DECK B</span><span class="deck-live" id="b-live">-</span></div>
+      <div class="deck-title" id="b-title">-</div>
+      <div class="kv-row">
+        <div class="kv"><div class="k">BPM</div><div class="v" id="b-bpm">-</div></div>
+        <div class="kv"><div class="k">Key</div><div class="v" id="b-key">-</div></div>
+        <div class="kv"><div class="k">Mood</div><div class="v" id="b-mood">-</div></div>
+      </div>
+      <div class="cue" id="b-cue">-</div>
+    </div>
+  </section>
+
+  <section class="console panel" style="margin-top:12px">
+    <div class="transport">
+      <button class="play" id="play" aria-label="Play">&#9654;</button>
+      <div class="time"><span id="cur">0:00</span> / <span id="dur">0:00</span></div>
+      <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Seek">
+    </div>
+    <div class="fader-row">
+      <div>
+        <div class="eq-title">EQ A, low / mid / high</div>
+        <div class="eq-meters" id="eq-a">
+          <div class="meter"><div class="fill"></div><span class="tag">L</span></div>
+          <div class="meter"><div class="fill"></div><span class="tag">M</span></div>
+          <div class="meter"><div class="fill"></div><span class="tag">H</span></div>
+        </div>
+      </div>
+      <div class="crossfader">
+        <div class="cf-label"><span>A</span><span id="fader-val">0.00</span><span>B</span></div>
+        <div class="rail-wrap"><div class="rail"></div><div class="knob" id="knob"></div></div>
+      </div>
+      <div>
+        <div class="eq-title">EQ B, low / mid / high</div>
+        <div class="eq-meters" id="eq-b">
+          <div class="meter"><div class="fill"></div><span class="tag">L</span></div>
+          <div class="meter"><div class="fill"></div><span class="tag">M</span></div>
+          <div class="meter"><div class="fill"></div><span class="tag">H</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-name">Deck B filter</div>
+      <div class="filter-track"><div class="filter-rail"></div><div class="filter-center"></div><div class="filter-knob" id="filter-knob"></div></div>
+      <div class="filter-value" id="filter-val">off</div>
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:12px">
+    <div class="chart-card">
+      <div class="chart-head">
+        <div class="chart-title">Fader, target, output level, low-band overlap</div>
+        <div class="legend">
+          <span><i style="background:var(--accent)"></i>fader</span>
+          <span><i style="background:#6f7d8e"></i>target</span>
+          <span><i style="background:var(--cyan)"></i>level</span>
+          <span><i style="background:var(--bad)"></i>low overlap</span>
+        </div>
+      </div>
+      <svg id="chart" viewBox="0 0 1000 240" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Transition timeline"></svg>
+    </div>
+  </section>
+
+  <section class="panel score" style="margin-top:12px">
+    <div class="score-total">
+      <div class="k">Episode score</div>
+      <div class="v" id="score-total">-</div>
+      <div class="sub" id="score-sub">-</div>
+    </div>
+    <div class="comp-list" id="components"></div>
+    <div class="metric-list" id="metrics"></div>
+  </section>
+
+  <div class="section-head">
+    <h2>How it works</h2>
+    <span>three pieces that fixed the sound</span>
+  </div>
+  <section class="how">
+    <div class="panel">
+      <h3>Real beat grid</h3>
+      <p>Analysis stores beat times, downbeats and phrase cues. Tempo octaves are folded by subsampling the grid, not just the BPM number. Cues land on bar lines.</p>
+      <p style="margin-top:8px"><code>library_v2.py</code></p>
+    </div>
+    <div class="panel">
+      <h3>Continuous surface</h3>
+      <p>Eight continuous controls, not ten discrete bins. Beatmatching is automatic; the policy only chooses the blend. A parked fader and a hard cut are both scored worse than a real blend.</p>
+      <p style="margin-top:8px"><code>env_v1.py</code></p>
+    </div>
+    <div class="panel">
+      <h3>Beat-anchored renderer</h3>
+      <p>Every beat of deck B is warped onto deck A's beat, then mixed through a Linkwitz-Riley EQ, a swept state-variable filter, loudness matching and slow gain riding.</p>
+      <p style="margin-top:8px"><code>render_v2.py</code></p>
+    </div>
+  </section>
+
+  <div class="section-head">
+    <h2>The 20-song run</h2>
+    <span>audio stays local for copyright</span>
+  </div>
+  <section class="run-strip panel">
+    <div><div class="v">13.65</div><div class="k">model eval return</div></div>
+    <div><div class="v">0.151</div><div class="k">mean low-band overlap</div></div>
+    <div><div class="v">0.087</div><div class="k">mean level jump</div></div>
+    <div><div class="v">800k</div><div class="k">PPO steps after cloning</div></div>
+  </section>
+  <p style="font-size:0.76rem;color:var(--muted);margin:9px 0 0;max-width:80ch">
+    The commercial 20-song crate is used locally and is not hosted. This page
+    renders the license-free synthesized demo tracks with the same 800k
+    checkpoint, so the controls, charts and score are the real policy.
+  </p>
+
+  <footer>
+    <span><a href="https://github.com/Aryamanironman/moodmix-env" target="_blank" rel="noreferrer">github.com/Aryamanironman/moodmix-env</a></span>
+    <span>DJSet-v1, 32-beat phrase-aligned blend, 44.1 kHz</span>
+  </footer>
+</div>
+<audio id="audio" preload="auto"></audio>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const audio = $("#audio");
+  const state = { transitions: [], index: 0, data: null, raf: 0 };
+  const NS = "http://www.w3.org/2000/svg";
+  const fmt = (s) => {
+    if (!Number.isFinite(s)) return "0:00";
+    const m = Math.floor(s / 60), r = Math.floor(s % 60);
+    return `${m}:${String(r).padStart(2, "0")}`;
+  };
+  const title = (id) => id.replaceAll("_", " ").replace(/\b\w/g, c => c.toUpperCase());
+
+  function svgEl(name, attrs = {}) {
+    const el = document.createElementNS(NS, name);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    return el;
+  }
+
+  function buildChart(data) {
+    const svg = $("#chart");
+    svg.innerHTML = "";
+    const W = 1000, H = 240, L = 46, R = 18, T = 18, B = 30;
+    const maxT = Math.max(0.001, data.duration);
+    const x = t => L + (t / maxT) * (W - L - R);
+    const y = v => T + (1 - Math.max(0, Math.min(1, v))) * (H - T - B);
+    for (const v of [0, 0.25, 0.5, 0.75, 1]) {
+      svg.appendChild(svgEl("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), class: "grid-line" }));
+      const t = svgEl("text", { x: L - 8, y: y(v) + 3, "text-anchor": "end", class: "axis-text" });
+      t.textContent = v.toFixed(2); svg.appendChild(t);
+    }
+    for (const frac of [0, 0.5, 1]) {
+      const t = maxT * frac;
+      const label = svgEl("text", { x: x(t), y: H - 8, "text-anchor": frac === 0 ? "start" : frac === 1 ? "end" : "middle", class: "axis-text" });
+      label.textContent = `${t.toFixed(1)}s`; svg.appendChild(label);
+    }
+    const maxLevel = Math.max(1e-6, ...data.steps.map(s => s.level));
+    const poly = (values, cls) => {
+      const points = values.map((v, i) => `${x(data.beat_times[i])},${y(v)}`).join(" ");
+      svg.appendChild(svgEl("polyline", { points, class: cls }));
+    };
+    poly(data.steps.map(s => s.level / maxLevel), "l-level");
+    poly(data.steps.map(s => s.low_overlap), "l-overlap");
+    poly(data.steps.map(s => s.target), "l-target");
+    poly(data.steps.map(s => s.fader), "l-fader");
+    svg.appendChild(svgEl("line", { x1: x(0), x2: x(0), y1: T, y2: H - B, class: "playhead", id: "playhead" }));
+  }
+
+  function applyStep(step, t) {
+    if (!step) return;
+    $("#knob").style.left = `${step.fader * 100}%`;
+    $("#fader-val").textContent = step.fader.toFixed(2);
+    for (const side of ["a", "b"]) {
+      const values = side === "a" ? step.eq_a : step.eq_b;
+      $$(`#eq-${side} .fill`).forEach((fill, i) => { fill.style.height = `${Math.max(2, values[i] * 100)}%`; });
+    }
+    const pos = (step.filter + 1) / 2;
+    $("#filter-knob").style.left = `${pos * 100}%`;
+    $("#filter-val").textContent = step.filter < -0.03 ? `LP ${Math.round(-step.filter * 100)}%`
+      : step.filter > 0.03 ? `HP ${Math.round(step.filter * 100)}%` : "off";
+    $("#a-live").textContent = `${step.section_a}, ${Math.round(step.gain_a * 100)}%`;
+    $("#b-live").textContent = `${step.section_b}, ${Math.round(step.gain_b * 100)}%`;
+    const ph = $("#playhead");
+    if (ph && state.data) {
+      const maxT = Math.max(0.001, state.data.duration);
+      const px = 46 + (Math.min(t, maxT) / maxT) * (1000 - 64);
+      ph.setAttribute("x1", px); ph.setAttribute("x2", px);
+    }
+    $("#cur").textContent = fmt(t);
+  }
+
+  function applyAt(t) {
+    const data = state.data;
+    if (!data) return;
+    let i = 0;
+    while (i + 1 < data.beat_times.length && data.beat_times[i + 1] <= t) i += 1;
+    applyStep(data.steps[Math.min(i, data.steps.length - 1)], t);
+  }
+
+  function renderScore(data) {
+    $("#score-total").textContent = `${data.reward >= 0 ? "+" : ""}${data.reward.toFixed(2)}`;
+    $("#score-sub").textContent = `${data.policy} policy, fader ${data.final_fader.toFixed(2)}`;
+    const entries = Object.entries(data.components).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+    const max = Math.max(0.01, ...entries.map(([, v]) => Math.abs(v)));
+    $("#components").innerHTML = entries.map(([name, value]) => {
+      const width = Math.abs(value) / max * 100;
+      const color = value >= 0 ? "var(--good)" : "var(--bad)";
+      return `<div class="comp"><span class="comp-name">${name.replaceAll("_", " ")}</span><div class="comp-bar"><span style="width:${width}%;background:${color}"></span></div><span class="comp-val">${value >= 0 ? "+" : ""}${value.toFixed(2)}</span></div>`;
+    }).join("");
+    const metrics = [
+      ["final fader", data.final_fader.toFixed(2)],
+      ["mean level jump", data.mean_level_jump.toFixed(3)],
+      ["mean low overlap", data.mean_low_overlap.toFixed(3)],
+      ["duration", fmt(data.duration)],
+      ["policy", data.policy],
+      ["beat", data.beat_seconds.toFixed(3) + " s"]
+    ];
+    $("#metrics").innerHTML = metrics.map(([k, v]) => `<div class="metric"><span>${k}</span><b>${v}</b></div>`).join("");
+  }
+
+  function fillDeck(side, track, cue) {
+    $(`#${side}-title`).textContent = title(track.id);
+    $(`#${side}-bpm`).textContent = track.bpm.toFixed(1);
+    $(`#${side}-key`).textContent = `${track.key} ${track.mode}`;
+    $(`#${side}-mood`).textContent = track.mood;
+    const c = track.cues.find(x => x.beat === cue);
+    $(`#${side}-cue`).textContent = c
+      ? `cue: bar ${c.bar}, ${c.section}, phrase energy ${c.energy.toFixed(2)}`
+      : `cue: beat ${cue}`;
+    $(`#${side}-live`).textContent = "-";
+  }
+
+  function select(index) {
+    const data = state.transitions[index];
+    if (!data) return;
+    state.index = index;
+    state.data = data;
+    $$(".chip").forEach((chip, i) => chip.classList.toggle("active", i === index));
+    fillDeck("a", data.track_a, data.cue_a);
+    fillDeck("b", data.track_b, data.cue_b);
+    $("#mid-score").textContent = `${data.reward >= 0 ? "+" : ""}${data.reward.toFixed(2)}`;
+    $("#mid-note").textContent = `${data.policy} policy, ${fmt(data.duration)} blend`;
+    $("#mid-cues").textContent = `cues beat ${data.cue_a} to ${data.cue_b}`;
+    audio.pause();
+    audio.src = data.audio_url;
+    audio.load();
+    audio.currentTime = 0;
+    buildChart(data);
+    renderScore(data);
+    applyAt(0);
+    $("#dur").textContent = fmt(data.duration);
+    $("#seek").value = 0;
+    $("#cur").textContent = "0:00";
+    $("#play").innerHTML = "&#9654;";
+  }
+
+  function tick() {
+    if (!state.data || audio.paused) return;
+    const duration = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : state.data.duration;
+    const frac = Math.min(1, audio.currentTime / duration);
+    applyAt(frac * state.data.duration);
+    $("#seek").value = Math.round(frac * 1000);
+    state.raf = requestAnimationFrame(tick);
+  }
+
+  async function boot() {
+    const payload = await fetch("demo/transitions.json").then(r => r.json());
+    state.transitions = payload.transitions;
+    $("#chips").innerHTML = state.transitions.map((t, i) =>
+      `<button class="chip" data-i="${i}"><b>${t.label}</b><small>${t.policy} · ${fmt(t.duration)} · ${t.reward >= 0 ? "+" : ""}${t.reward.toFixed(2)}</small></button>`
+    ).join("");
+    $$(".chip[data-i]").forEach(chip => chip.addEventListener("click", () => select(Number(chip.dataset.i))));
+    select(0);
+
+    $("#play").addEventListener("click", () => {
+      if (audio.paused) audio.play().catch(() => {});
+      else audio.pause();
+    });
+    $("#play-cta").addEventListener("click", () => {
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    });
+    audio.addEventListener("play", () => {
+      $("#play").innerHTML = "&#10074;&#10074;";
+      cancelAnimationFrame(state.raf);
+      tick();
+    });
+    audio.addEventListener("pause", () => {
+      $("#play").innerHTML = "&#9654;";
+      cancelAnimationFrame(state.raf);
+    });
+    audio.addEventListener("ended", () => {
+      $("#play").innerHTML = "&#9654;";
+      $("#seek").value = 1000;
+    });
+    $("#seek").addEventListener("input", () => {
+      if (!state.data) return;
+      const duration = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : state.data.duration;
+      const t = (Number($("#seek").value) / 1000) * duration;
+      audio.currentTime = t;
+      applyAt((t / duration) * state.data.duration);
+    });
+  }
+
+  boot().catch(error => {
+    console.error(error);
+    $("#mid-note").textContent = "Could not load the demo: " + error.message;
+  });
+})();
+</script>
+</body>
+</html>
